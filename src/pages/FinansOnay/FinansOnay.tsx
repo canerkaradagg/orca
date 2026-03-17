@@ -1,8 +1,7 @@
 import { useCallback, useState, useRef, useEffect } from 'react'
 import styles from './FinansOnay.module.css'
-import { useFinansOnay, type DispOrder, type CariOzetRow } from './useFinansOnay'
+import { useFinansOnay, type CariOzetRow } from './useFinansOnay'
 import { FilterBar } from './FilterBar'
-import { ActionBar } from './ActionBar'
 import { useAuth } from '../../contexts/AuthContext'
 
 const STATUS_CLASS: Record<number, string> = {
@@ -22,10 +21,6 @@ function fmtMoney(v: number) {
   return v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function fmtDateTime(v: string | null | undefined) {
-  if (!v) return '—'
-  return new Date(v).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })
-}
 
 export function FinansOnay() {
   const { user } = useAuth()
@@ -48,33 +43,6 @@ export function FinansOnay() {
     [h.setFilters],
   )
 
-  const handleCustomerClick = useCallback(
-    (e: React.MouseEvent, row: DispOrder) => {
-      e.stopPropagation()
-      h.openCustomerSummary(row.customerCode, h.filters.company)
-    },
-    [h.openCustomerSummary, h.filters.company],
-  )
-
-  const [draggedColId, setDraggedColId] = useState<string | null>(null)
-  const handleColDragStart = useCallback((colId: string) => setDraggedColId(colId), [])
-  const handleColDragEnd = useCallback(() => setDraggedColId(null), [])
-  const handleColDragOver = useCallback((e: React.DragEvent) => e.preventDefault(), [])
-  const handleColDrop = useCallback(
-    (targetColId: string) => {
-      if (!draggedColId || draggedColId === targetColId) return
-      const order = [...h.gridColumnOrder]
-      const fromIdx = order.indexOf(draggedColId)
-      const toIdx = order.indexOf(targetColId)
-      if (fromIdx === -1 || toIdx === -1) return
-      order.splice(fromIdx, 1)
-      order.splice(toIdx, 0, draggedColId)
-      h.setGridColumnOrder(order)
-      setDraggedColId(null)
-    },
-    [draggedColId, h.gridColumnOrder, h.setGridColumnOrder],
-  )
-
   const getCariCell = useCallback((row: CariOzetRow, field: keyof CariOzetRow): React.ReactNode => {
     const v = row[field]
     if (v == null || v === '') return '—'
@@ -82,34 +50,6 @@ export function FinansOnay() {
     if (field === 'dispCount') return Number(v).toLocaleString('tr-TR')
     return String(v)
   }, [])
-
-  const getCellValue = useCallback((row: DispOrder, field: keyof DispOrder): React.ReactNode => {
-    const v = row[field]
-    if (v == null || v === '') return '—'
-    if (field === 'orderDate' || field === 'approvalDate') return fmtDate(v as string)
-    if (field === 'statusDate') return fmtDateTime(v as string)
-    if (field === 'totalAmount' || field === 'baseAmount') return fmtMoney(Number(v))
-    if (field === 'totalQty') return Number(v).toLocaleString('tr-TR')
-    if (field === 'customerName') {
-      return (
-        <button
-          className={styles.linkBtn}
-          onClick={e => handleCustomerClick(e, row)}
-          title="Cari özet bilgisi"
-        >
-          {String(v)}
-        </button>
-      )
-    }
-    if (field === 'statusName') {
-      return (
-        <span className={`${styles.badge} ${STATUS_CLASS[row.statusId] ?? styles.badgeGray}`}>
-          {String(v)}
-        </span>
-      )
-    }
-    return String(v)
-  }, [handleCustomerClick])
 
   return (
     <div className={styles.page}>
@@ -674,9 +614,9 @@ export function FinansOnay() {
                                     <td className={styles.tdCenter}>{order.itAtt02 || '—'}</td>
                                     <td className={styles.tdCenter}>{order.category || '—'}</td>
                                     <td className={styles.tdCenter}>{order.brand || '—'}</td>
-                                    <td className={styles.tdCenter}>{fmtMoney(order.baseAmount)}</td>
-                                    <td className={styles.tdCenter}>{fmtMoney(order.totalAmount)}</td>
-                                    <td className={styles.tdCenter}><span className={`${styles.badge} ${STATUS_CLASS[order.statusId] ?? styles.badgeGray}`}>{order.statusName || '—'}</span></td>
+                                    <td className={styles.tdCenter}>{fmtMoney(order.baseAmount ?? 0)}</td>
+                                    <td className={styles.tdCenter}>{fmtMoney(order.totalAmount ?? 0)}</td>
+                                    <td className={styles.tdCenter}><span className={`${styles.badge} ${STATUS_CLASS[order.statusId ?? 0] ?? styles.badgeGray}`}>{order.statusName || '—'}</span></td>
                                   </tr>
                                 )
                               })
@@ -718,7 +658,7 @@ export function FinansOnay() {
                             <button type="button" className={styles.pageBtn} onClick={() => h.setCariSevkPage(1)} disabled={h.cariSevkPage <= 1}>İlk</button>
                             <button type="button" className={styles.pageBtn} onClick={() => h.setCariSevkPage(h.cariSevkPage - 1)} disabled={h.cariSevkPage <= 1}>Önceki</button>
                             <button type="button" className={styles.pageBtn} onClick={() => h.setCariSevkPage(h.cariSevkPage + 1)} disabled={h.cariSevkPage >= h.cariSevkTotalPages}>Sonraki</button>
-                            <button type="button" className={styles.pageBtn} onClick={() => h.setCariSevkPage(h.cariSevkTotalPages)} disabled={h.cariSevkPage >= h.cariSevkTotalPages}>Son</button>
+                            <button type="button" className={styles.pageBtn} onClick={() => h.setCariSevkPage(h.cariSevkTotalPages ?? 1)} disabled={h.cariSevkPage >= h.cariSevkTotalPages}>Son</button>
                           </div>
                         </div>
                       )}

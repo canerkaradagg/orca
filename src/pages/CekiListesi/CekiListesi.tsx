@@ -232,10 +232,10 @@ export function CekiListesi() {
     setSasEdits({})
     setUploadCasesFile(null)
     try {
-      const res = await api.get<{ pickingList: Record<string, unknown>; orders: PickingOrderRow[]; cases?: PickingCaseRow[] }>(`/api/picking-lists/${id}`)
+      const res = await api.get<{ pickingList: Record<string, unknown>; orders?: unknown[]; cases?: unknown[] }>(`/api/picking-lists/${id}`)
       const pl = res.pickingList
-      const orders = res.orders ?? []
-      const cases = res.cases ?? []
+      const orders = Array.isArray(res.orders) ? res.orders : []
+      const cases = Array.isArray(res.cases) ? res.cases : []
       const createdTime = pl?.CreatedTime as string | undefined
       setDetailData({
         id: (pl?.PickingListId as number) ?? id,
@@ -246,22 +246,28 @@ export function CekiListesi() {
         durum: (pl?.Status as number) ?? 1,
         listType: (pl?.ListType as number) ?? 1,
         singleWaybill: !!(pl?.SingleWaybill as boolean),
-        orders: orders.map((o: Record<string, unknown>) => ({
-          dispOrderHeaderId: o.DispOrderHeaderId as number,
-          dispOrderNumber: (o.DispOrderNumber as string) ?? '',
-          dispOrderDate: (o.DispOrderDate as string) ?? null,
-          warehouseCode: (o.WarehouseCode as string) ?? null,
-          totalQty: Number(o.TotalQty ?? 0),
-          totalAmount: Number(o.TotalAmount ?? 0),
-          customerSASNo: (o.CustomerSASNo as string) ?? null,
-        })),
-        cases: (cases as PickingCaseRow[]).map((c: Record<string, unknown>) => ({
-          dispOrderCaseId: c.DispOrderCaseId as number,
-          dispOrderHeaderId: c.DispOrderHeaderId as number,
-          dispOrderNumber: (c.DispOrderNumber as string) ?? '',
-          caseCode: (c.CaseCode as string) ?? null,
-          customerSASNo: (c.CustomerSASNo as string) ?? null,
-        })),
+        orders: orders.map((o: unknown) => {
+          const row = o as Record<string, unknown>
+          return {
+            dispOrderHeaderId: row.DispOrderHeaderId as number,
+            dispOrderNumber: (row.DispOrderNumber as string) ?? '',
+            dispOrderDate: (row.DispOrderDate as string) ?? null,
+            warehouseCode: (row.WarehouseCode as string) ?? null,
+            totalQty: Number(row.TotalQty ?? 0),
+            totalAmount: Number(row.TotalAmount ?? 0),
+            customerSASNo: (row.CustomerSASNo as string) ?? null,
+          }
+        }),
+        cases: cases.map((c: unknown) => {
+          const row = c as Record<string, unknown>
+          return {
+            dispOrderCaseId: row.DispOrderCaseId as number,
+            dispOrderHeaderId: row.DispOrderHeaderId as number,
+            dispOrderNumber: (row.DispOrderNumber as string) ?? '',
+            caseCode: (row.CaseCode as string) ?? null,
+            customerSASNo: (row.CustomerSASNo as string) ?? null,
+          }
+        }),
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Detay alınamadı.')

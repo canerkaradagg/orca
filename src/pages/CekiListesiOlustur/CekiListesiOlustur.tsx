@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { api } from '../../lib/api-client'
 import { useCompanies } from '../../hooks/useMasterData'
 import styles from './CekiListesiOlustur.module.css'

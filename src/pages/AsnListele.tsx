@@ -4,7 +4,6 @@ import styles from './AsnListele.module.css'
 import { api } from '../lib/api-client'
 import { useDebounce } from '../hooks/useDebounce'
 import { useCompanies, useWarehouses, useVendors, useAsnList, useInboundLines } from '../hooks/useMasterData'
-import { API_BASE } from '../config'
 import { IconDocument, IconOnayla, IconAlokasyon, IconSuccessCircle } from './AsnListeleIcons'
 import {
   ISLEMI_YAPAN_OPTIONS,
@@ -75,7 +74,7 @@ export function AsnListele() {
     durum: string
   } | null>(null)
   const queryClient = useQueryClient()
-  const { data: asnListData, isLoading: listLoading, isError: listIsError, error: listErrorObj, refetch: refetchAsnList } = useAsnList(
+  const { data: asnListData, isLoading: listLoading, isError: listIsError, error: listErrorObj } = useAsnList(
     appliedFilters
       ? { ...appliedFilters, page: currentPage, pageSize: PAGE_SIZE }
       : {
@@ -92,11 +91,10 @@ export function AsnListele() {
     { enabled: true }
   )
   const listRows: AsnRow[] = asnListData?.rows ?? []
-  const totalCount = asnListData?.totalCount ?? 0
   const [listError, setListError] = useState<string | null>(listIsError ? (listErrorObj as Error)?.message ?? 'Liste alınamadı.' : null)
   const [onaylaLoadingId, setOnaylaLoadingId] = useState<string | null>(null)
   const [showInsufficientBarcodesModal, setShowInsufficientBarcodesModal] = useState(false)
-  const [insufficientBarcodes, setInsufficientBarcodes] = useState<string[]>([])
+  const [, setInsufficientBarcodes] = useState<string[]>([])
   const [insufficientBarcodesDetail, setInsufficientBarcodesDetail] = useState<InsufficientBarcodeRow[]>([])
   const [insufficientModalPage, setInsufficientModalPage] = useState(1)
   const [expandedInsufficientRow, setExpandedInsufficientRow] = useState<Set<string>>(new Set())
@@ -215,7 +213,7 @@ export function AsnListele() {
     isLoading: excelPreviewLoading,
     isError: excelPreviewIsError,
     error: excelPreviewErrorObj,
-  } = useInboundLines(selectedRowForExcel?.id ?? null, { enabled: excelModalOpen && !!selectedRowForExcel?.id })
+  } = useInboundLines(selectedRowForExcel?.id != null ? parseInt(selectedRowForExcel.id, 10) : null, { enabled: excelModalOpen && !!selectedRowForExcel?.id })
 
   const [excelPreviewData, setExcelPreviewData] = useState<ExcelPreviewData | null>(null)
   const [excelPreviewSaveError, setExcelPreviewSaveError] = useState<string | null>(null)
@@ -255,7 +253,7 @@ export function AsnListele() {
     setShowInsufficientBarcodesModal(false)
     setInsufficientBarcodes([])
     // ApiClient API_BASE eklediği için relative path kullan.
-    api.post(`/api/inbound/${row.id}/onayla-erp`, undefined)
+    api.post<{ ok: boolean; insufficientBarcodes?: string[]; insufficientBarcodesDetail?: InsufficientBarcodeRow[]; error?: string }>(`/api/inbound/${row.id}/onayla-erp`, undefined)
       .then((data) => {
         if (data.ok) {
           queryClient.invalidateQueries({ queryKey: ['asnList'] })
@@ -299,7 +297,7 @@ export function AsnListele() {
             }
           : prev
     )
-    api.post(`/api/inbound/${row.id}/alokasyon-yap`)
+    api.post<{ ok: boolean; error?: string }>(`/api/inbound/${row.id}/alokasyon-yap`, undefined)
       .then((data) => {
         if (data.ok) {
           setAlokasyonInfoModalOpen(true)
@@ -308,7 +306,7 @@ export function AsnListele() {
         }
         queryClient.invalidateQueries({ queryKey: ['asnList'] })
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         setListError(err.message || 'Bağlantı hatası.')
         queryClient.invalidateQueries({ queryKey: ['asnList'] })
       })
@@ -333,7 +331,7 @@ export function AsnListele() {
     if (!excelPreviewData || !selectedRowForExcel) return
     const num = parseInt(editQuantity, 10)
     if (Number.isNaN(num) || num < 0) return
-    api.put(`/api/inbound/${selectedRowForExcel.id}/lines`, { lineIndex: globalIndex, quantity: num })
+    api.put<{ ok: boolean; error?: string }>(`/api/inbound/${selectedRowForExcel.id}/lines`, { lineIndex: globalIndex, quantity: num })
       .then((data) => {
         if (data.ok) {
           const newRows = excelPreviewData.rows.map((row, i) =>
@@ -347,7 +345,7 @@ export function AsnListele() {
           setExcelPreviewSaveError(data.error || 'Adet güncellenemedi.')
         }
       })
-      .catch((err) => setExcelPreviewSaveError(err.message || 'Bağlantı hatası.'))
+      .catch((err: Error) => setExcelPreviewSaveError(err.message || 'Bağlantı hatası.'))
   }
 
   const excelPreviewTotalPages = excelPreviewData

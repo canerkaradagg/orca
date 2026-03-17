@@ -4,7 +4,6 @@ import * as XLSX from 'xlsx'
 import styles from './AsnDosyasiYukle.module.css'
 import { api } from '../lib/api-client'
 import { useCompanies, useWarehouses, useVendors, useChannelTemplates } from '../hooks/useMasterData'
-import { API_BASE } from '../config'
 import type { CompanyOption, CodeDescriptionOption, WarehouseOption, InsufficientBarcodeRow } from './AsnDosyasiYukle/types'
 import { COLUMN_ALIASES, MAX_PREVIEW_ROWS, ASN_TEMPLATE_FILE_NAME, COMPANY_LOGO_MAP } from './AsnDosyasiYukle/constants'
 
@@ -52,7 +51,7 @@ export function AsnDosyasiYukle() {
   const [showUndefinedEanModal, setShowUndefinedEanModal] = useState(false)
   const [undefinedEanCodes, setUndefinedEanCodes] = useState<string[]>([])
   const [showInsufficientBarcodesModal, setShowInsufficientBarcodesModal] = useState(false)
-  const [insufficientBarcodes, setInsufficientBarcodes] = useState<string[]>([])
+  const [, setInsufficientBarcodes] = useState<string[]>([])
   const [insufficientBarcodesDetail, setInsufficientBarcodesDetail] = useState<InsufficientBarcodeRow[]>([])
   const [insufficientModalPage, setInsufficientModalPage] = useState(1)
   const [expandedInsufficientRow, setExpandedInsufficientRow] = useState<Set<string>>(new Set())
@@ -203,12 +202,19 @@ export function AsnDosyasiYukle() {
     setSaving(true)
     setTaslakSaving(true)
     try {
-      const payload = buildPayload()
+      const payload = buildPayload() as Record<string, unknown>
       if (file) {
         payload.fileContent = await fileToBase64(file)
       }
-      // ApiClient zaten API_BASE ile birleştiriyor; burada relative path gönder.
-      const data = await api.post('/api/taslak-kaydet', payload)
+      const data = await api.post('/api/taslak-kaydet', payload) as {
+        ok: boolean
+        insufficientBarcodes?: string[]
+        insufficientBarcodesDetail?: InsufficientBarcodeRow[]
+        undefinedEanCodes?: string[]
+        error?: string
+        inboundId?: number
+        lineCount?: number
+      }
       if (!data.ok) {
         if (Array.isArray(data.insufficientBarcodes) && data.insufficientBarcodes.length > 0) {
           setInsufficientBarcodes(data.insufficientBarcodes)
@@ -258,7 +264,14 @@ export function AsnDosyasiYukle() {
       if (file) {
         payload.fileContent = await fileToBase64(file)
       }
-      const data = await api.post('/api/asn-olustur-erp', payload, { noRetry: true })
+      const data = await api.post('/api/asn-olustur-erp', payload, { noRetry: true }) as {
+        ok: boolean
+        insufficientBarcodes?: string[]
+        insufficientBarcodesDetail?: InsufficientBarcodeRow[]
+        error?: string
+        asnNo?: string
+        lineCount?: number
+      }
       if (!data.ok) {
         if (Array.isArray(data.insufficientBarcodes) && data.insufficientBarcodes.length > 0) {
           setInsufficientBarcodes(data.insufficientBarcodes)

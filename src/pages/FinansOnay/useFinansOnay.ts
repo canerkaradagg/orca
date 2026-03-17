@@ -118,13 +118,6 @@ export interface CariOzetRow {
   waitReasonSample?: string | null
 }
 
-interface GridResponse {
-  rows?: DispOrder[]
-  totalCount?: number
-  data?: DispOrder[]
-  total?: number
-}
-
 export interface Filters {
   company: string
   customer: string
@@ -199,8 +192,8 @@ export function useFinansOnay(userId?: number) {
   const [totalCariCount, setTotalCariCount] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(50)
-  const [rows, setRows] = useState<DispOrder[]>([])
-  const [total, setTotal] = useState(0)
+  const [rows, _setRows] = useState<DispOrder[]>([])
+  const [total, _setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -291,7 +284,7 @@ export function useFinansOnay(userId?: number) {
     api.get<{ reasons?: string[] }>('/api/finance/wait-reasons')
       .then((res: any) => {
         const list = Array.isArray(res?.reasons) ? res.reasons : []
-        setWaitReasons(list.map((name, i) => ({ code: String(i), name })))
+        setWaitReasons(list.map((name: string, i: number) => ({ code: String(i), name })))
       })
       .catch(() => setWaitReasons([]))
   }, [])
@@ -306,7 +299,7 @@ export function useFinansOnay(userId?: number) {
   useEffect(() => {
     if (!filters.company) { setSeasons([]); setCustomers([]); return }
     api.get<{ seasons?: { code: string; description: string }[] }>(`/api/finance/seasons?company=${encodeURIComponent(filters.company)}`)
-      .then((res: any) => setSeasons((Array.isArray(res?.seasons) ? res.seasons : []).map(s => ({ code: s.code ?? '', description: s.description ?? s.code ?? '' }))))
+      .then((res: { seasons?: { code?: string; description?: string }[] }) => setSeasons((Array.isArray(res?.seasons) ? res.seasons : []).map((s: { code?: string; description?: string }) => ({ code: s.code ?? '', description: s.description ?? s.code ?? '' }))))
       .catch(() => setSeasons([]))
     api.get<any>(`/api/finance/customers?company=${encodeURIComponent(filters.company)}`)
       .then((res: any) => {
@@ -430,9 +423,9 @@ export function useFinansOnay(userId?: number) {
       setSelectedCariKeys(new Set())
       setBekletModalOpen(false)
       setWaitReasonInput('')
-      fetchGrid(appliedFilters)
-    } catch (e: any) {
-      setError(e.message || 'İşlem başarısız.')
+      fetchGrid()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'İşlem başarısız.')
     } finally {
       setSaving(false)
     }
@@ -476,7 +469,7 @@ export function useFinansOnay(userId?: number) {
   }, [])
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedIds(prev => prev.size === rows.length ? new Set() : new Set(rows.map(r => r.dispOrderHeaderId)))
+    setSelectedIds(prev => prev.size === rows.length ? new Set() : new Set(rows.map((r: DispOrder) => r.dispOrderHeaderId)))
   }, [rows])
 
   const allSelected = rows.length > 0 && selectedIds.size === rows.length
@@ -513,9 +506,9 @@ export function useFinansOnay(userId?: number) {
       await api.put('/api/finance/disp-orders/approve', { updates })
       setActiveAction(null)
       setWaitReasonInput('')
-      if (appliedFilters) fetchGrid(appliedFilters)
-    } catch (e: any) {
-      setError(e.message || 'İşlem başarısız.')
+      if (appliedFilters) fetchGrid()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'İşlem başarısız.')
     } finally {
       setSaving(false)
     }
@@ -699,10 +692,10 @@ export function useFinansOnay(userId?: number) {
       if (cariSevkModalCari && appliedFilters) {
         await fetchCariSevkOrders(cariSevkModalCari, cariSevkPage)
         await fetchCariSevkOzet(cariSevkModalCari)
-        fetchGrid(appliedFilters)
+        fetchGrid()
       }
-    } catch (e: any) {
-      setError(e.message || 'İşlem başarısız.')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'İşlem başarısız.')
     } finally {
       setSaving(false)
     }
@@ -758,7 +751,7 @@ export function useFinansOnay(userId?: number) {
 
   return {
     companies, customers, filterStatuses, actionStatuses, seasons, waitReasons,
-    filters, setFilters, search, resetFilters,
+    filters, setFilters, appliedFilters, search, resetFilters,
     cariOzet,
     totalCariCount,
     cariPage,
