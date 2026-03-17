@@ -1,0 +1,1 @@
+export { SevkEmriRaporu } from './SevkEmriRaporu'

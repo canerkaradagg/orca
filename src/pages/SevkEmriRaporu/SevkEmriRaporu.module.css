@@ -1,0 +1,438 @@
+.page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+.section {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 640px) {
+  .section {
+    padding: 1.5rem;
+  }
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionHeaderRow .sectionTitle {
+  margin-bottom: 0;
+}
+
+.resultCount {
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.loadingText {
+  color: #555;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* ── Filter grid ──────────────────────────────────────────── */
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 480px) {
+  .filterGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .filterGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .filterGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem 1.5rem;
+  }
+}
+
+.formRow {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.formRowActions {
+  margin-bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+@media (min-width: 480px) {
+  .formRowActions {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 768px) {
+  .formRowActions {
+    grid-column: span 1;
+  }
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.4rem;
+}
+
+.selectInput,
+.textInput {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.selectInput {
+  cursor: pointer;
+}
+
+.textInput {
+  cursor: text;
+}
+
+.selectInput:focus,
+.textInput:focus {
+  outline: none;
+  border-color: #002b50;
+  box-shadow: 0 0 0 2px rgba(0, 43, 80, 0.15);
+}
+
+.textInput::placeholder {
+  color: #999;
+}
+
+.sorgulaButton {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sorgulaButton:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.sorgulaButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.exportButton {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 1px solid #059669;
+  border-radius: 8px;
+  background: #059669;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: #047857;
+  border-color: #047857;
+}
+
+.exportButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Report table ─────────────────────────────────────────── */
+
+.tableWrap {
+  width: 100%;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+  max-height: 70vh;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reportTable {
+  width: 100%;
+  min-width: 2200px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+/* ── Group header row ─────────────────────────────────────── */
+
+.groupHeaderRow th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  border-right: 2px solid rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.groupHeaderRow th:last-child {
+  border-right: none;
+}
+
+.groupTemel {
+  background: #002b50;
+}
+
+.groupFinans {
+  background: #1d4ed8;
+}
+
+.groupBayi {
+  background: #15803d;
+}
+
+.groupSas {
+  background: #c2410c;
+}
+
+.groupMiktar {
+  background: #7c3aed;
+}
+
+.groupDiger {
+  background: #475569;
+}
+
+/* ── Column header row ────────────────────────────────────── */
+
+.columnHeaderRow th {
+  position: sticky;
+  top: 33px;
+  z-index: 2;
+  padding: 0.5rem 0.4rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.thTemel {
+  background: #003a6b;
+}
+
+.thFinans {
+  background: #2563eb;
+}
+
+.thBayi {
+  background: #16a34a;
+}
+
+.thSas {
+  background: #ea580c;
+}
+
+.thMiktar {
+  background: #8b5cf6;
+}
+
+.thDiger {
+  background: #64748b;
+}
+
+/* ── Table body ───────────────────────────────────────────── */
+
+.reportTable tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.reportTable tbody td {
+  padding: 0.4rem 0.4rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.reportTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.numericCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyCell {
+  text-align: center;
+  color: #666;
+  padding: 1.5rem !important;
+}
+
+/* ── Duration badges ──────────────────────────────────────── */
+
+.durationGreen,
+.durationYellow,
+.durationRed {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.durationGreen {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.durationYellow {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.durationRed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ── Pagination ───────────────────────────────────────────── */
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.paginationInfo {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.paginationButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.pageBtn {
+  min-width: 2rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageBtnActive {
+  background: #002b50;
+  border-color: #002b50;
+  color: #fff;
+}
+
+.pageBtnActive:hover:not(:disabled) {
+  background: #003d6b;
+  border-color: #003d6b;
+  color: #fff;
+}

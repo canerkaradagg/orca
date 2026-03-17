@@ -1,0 +1,116 @@
+2026-03-07 11:06:27 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-07 11:06:27 - Started 57184
+2026-03-13 10:16:19 - Stopping orcatrigger.exe
+2026-03-13 10:16:19 - ProcessKill 57184
+2026-03-13 10:16:20 - Found child process: 59900 Name: conhost.exe
+2026-03-13 10:16:20 - Found child process: 58636 Name: node.exe
+2026-03-13 10:16:21 - Stopping process 59900
+2026-03-13 10:16:21 - Send SIGINT 59900
+2026-03-13 10:16:21 - SIGINT to 59900 failed - Killing as fallback
+2026-03-13 10:16:22 - Stopping process 58636
+2026-03-13 10:16:22 - Send SIGINT 58636
+2026-03-13 10:16:22 - SIGINT to 58636 failed - Killing as fallback
+2026-03-13 10:16:22 - Stopping process 57184
+2026-03-13 10:16:22 - Send SIGINT 57184
+2026-03-13 10:16:22 - SIGINT to 57184 failed - Killing as fallback
+2026-03-13 10:16:22 - Finished orcatrigger.exe
+2026-03-13 10:55:27 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-13 10:55:27 - Started 85312
+2026-03-13 12:39:44 - Stopping orcatrigger.exe
+2026-03-13 12:39:44 - ProcessKill 85312
+2026-03-13 12:39:45 - Found child process: 85396 Name: conhost.exe
+2026-03-13 12:39:45 - Found child process: 66060 Name: node.exe
+2026-03-13 12:39:46 - Stopping process 85396
+2026-03-13 12:39:46 - Send SIGINT 85396
+2026-03-13 12:39:46 - SIGINT to 85396 failed - Killing as fallback
+2026-03-13 12:39:46 - Stopping process 66060
+2026-03-13 12:39:46 - Send SIGINT 66060
+2026-03-13 12:39:46 - SIGINT to 66060 failed - Killing as fallback
+2026-03-13 12:39:46 - Stopping process 85312
+2026-03-13 12:39:46 - Send SIGINT 85312
+2026-03-13 12:39:46 - SIGINT to 85312 failed - Killing as fallback
+2026-03-13 12:39:46 - Finished orcatrigger.exe
+2026-03-13 12:39:48 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-13 12:39:48 - Started 69788
+2026-03-16 07:20:03 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 07:20:04 - Started 7976
+2026-03-16 13:48:29 - Stopping orcatrigger.exe
+2026-03-16 13:48:29 - ProcessKill 7976
+2026-03-16 13:48:30 - Found child process: 7896 Name: conhost.exe
+2026-03-16 13:48:30 - Found child process: 9532 Name: node.exe
+2026-03-16 13:48:30 - Stopping process 7896
+2026-03-16 13:48:30 - Send SIGINT 7896
+2026-03-16 13:48:30 - SIGINT to 7896 failed - Killing as fallback
+2026-03-16 13:48:31 - Stopping process 9532
+2026-03-16 13:48:31 - Send SIGINT 9532
+2026-03-16 13:48:31 - SIGINT to 9532 failed - Killing as fallback
+2026-03-16 13:48:31 - Stopping process 7976
+2026-03-16 13:48:31 - Send SIGINT 7976
+2026-03-16 13:48:31 - SIGINT to 7976 failed - Killing as fallback
+2026-03-16 13:48:31 - Finished orcatrigger.exe
+2026-03-16 13:48:33 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 13:48:33 - Started 32464
+2026-03-16 16:51:02 - Stopping orcatrigger.exe
+2026-03-16 16:51:02 - ProcessKill 32464
+2026-03-16 16:51:02 - Shutdown exception
+Message:Sınıf kaydedilmemiş
+
+Stacktrace:   konum: System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   konum: System.Management.ManagementScope.InitializeGuts(Object o)
+   konum: System.Management.ManagementScope.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Get()
+   konum: winsw.WrapperService.GetChildPids(Int32 pid)
+   konum: winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   konum: winsw.WrapperService.StopIt()
+   konum: winsw.WrapperService.OnShutdown()
+2026-03-16 16:52:06 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 16:52:06 - Started 7288
+2026-03-16 16:54:58 - Stopping orcatrigger.exe
+2026-03-16 16:54:58 - ProcessKill 7288
+2026-03-16 16:54:58 - Shutdown exception
+Message:Sınıf kaydedilmemiş
+
+Stacktrace:   konum: System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   konum: System.Management.ManagementScope.InitializeGuts(Object o)
+   konum: System.Management.ManagementScope.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Get()
+   konum: winsw.WrapperService.GetChildPids(Int32 pid)
+   konum: winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   konum: winsw.WrapperService.StopIt()
+   konum: winsw.WrapperService.OnShutdown()
+2026-03-16 16:55:48 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 16:55:48 - Started 7588
+2026-03-16 16:57:58 - Stopping orcatrigger.exe
+2026-03-16 16:57:58 - ProcessKill 7588
+2026-03-16 16:57:58 - Shutdown exception
+Message:Sınıf kaydedilmemiş
+
+Stacktrace:   konum: System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   konum: System.Management.ManagementScope.InitializeGuts(Object o)
+   konum: System.Management.ManagementScope.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Get()
+   konum: winsw.WrapperService.GetChildPids(Int32 pid)
+   konum: winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   konum: winsw.WrapperService.StopIt()
+   konum: winsw.WrapperService.OnShutdown()
+2026-03-17 07:27:33 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-17 07:27:33 - Started 8080
+2026-03-17 07:43:31 - Stopping orcatrigger.exe
+2026-03-17 07:43:31 - ProcessKill 8080
+2026-03-17 07:43:31 - Found child process: 7604 Name: conhost.exe
+2026-03-17 07:43:31 - Found child process: 7400 Name: node.exe
+2026-03-17 07:43:31 - Stopping process 7604
+2026-03-17 07:43:31 - Send SIGINT 7604
+2026-03-17 07:43:31 - SIGINT to 7604 failed - Killing as fallback
+2026-03-17 07:43:32 - Stopping process 7400
+2026-03-17 07:43:32 - Send SIGINT 7400
+2026-03-17 07:43:32 - SIGINT to 7400 failed - Killing as fallback
+2026-03-17 07:43:32 - Stopping process 8080
+2026-03-17 07:43:32 - Send SIGINT 8080
+2026-03-17 07:43:32 - SIGINT to 8080 failed - Killing as fallback
+2026-03-17 07:43:32 - Finished orcatrigger.exe
+2026-03-17 07:43:34 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\orca-trigger-service.cjs --scriptoptions= --log "OrcaTrigger wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-17 07:43:34 - Started 25820

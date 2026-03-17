@@ -1,0 +1,78 @@
+2026-03-07 11:05:46 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-07 11:05:46 - Started 69424
+2026-03-13 10:55:25 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-13 10:55:25 - Started 77084
+2026-03-13 12:39:29 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-13 12:39:29 - Started 14388
+2026-03-13 12:39:38 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-13 12:39:38 - Started 78588
+2026-03-13 12:47:22 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-13 12:47:22 - Started 6448
+2026-03-16 07:20:03 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 07:20:04 - Started 7996
+2026-03-16 13:48:28 - Stopping orcaapi.exe
+2026-03-16 13:48:28 - ProcessKill 7996
+2026-03-16 13:48:28 - Found child process: 5964 Name: conhost.exe
+2026-03-16 13:48:28 - Found child process: 9436 Name: node.exe
+2026-03-16 13:48:29 - Stopping process 5964
+2026-03-16 13:48:29 - Send SIGINT 5964
+2026-03-16 13:48:29 - SIGINT to 5964 failed - Killing as fallback
+2026-03-16 13:48:29 - Stopping process 9436
+2026-03-16 13:48:29 - Send SIGINT 9436
+2026-03-16 13:48:29 - SIGINT to 9436 failed - Killing as fallback
+2026-03-16 13:48:29 - Stopping process 7996
+2026-03-16 13:48:29 - Send SIGINT 7996
+2026-03-16 13:48:29 - SIGINT to 7996 failed - Killing as fallback
+2026-03-16 13:48:29 - Finished orcaapi.exe
+2026-03-16 13:48:32 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 13:48:32 - Started 3268
+2026-03-16 16:52:06 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 16:52:06 - Started 7804
+2026-03-16 16:54:58 - Stopping orcaapi.exe
+2026-03-16 16:54:58 - ProcessKill 7804
+2026-03-16 16:54:58 - Shutdown exception
+Message:Sınıf kaydedilmemiş
+
+Stacktrace:   konum: System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   konum: System.Management.ManagementScope.InitializeGuts(Object o)
+   konum: System.Management.ManagementScope.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Get()
+   konum: winsw.WrapperService.GetChildPids(Int32 pid)
+   konum: winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   konum: winsw.WrapperService.StopIt()
+   konum: winsw.WrapperService.OnShutdown()
+2026-03-16 16:55:48 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-16 16:55:48 - Started 7616
+2026-03-16 16:57:58 - Stopping orcaapi.exe
+2026-03-16 16:57:58 - ProcessKill 7616
+2026-03-16 16:57:58 - Shutdown exception
+Message:Sınıf kaydedilmemiş
+
+Stacktrace:   konum: System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   konum: System.Management.ManagementScope.InitializeGuts(Object o)
+   konum: System.Management.ManagementScope.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Initialize()
+   konum: System.Management.ManagementObjectSearcher.Get()
+   konum: winsw.WrapperService.GetChildPids(Int32 pid)
+   konum: winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   konum: winsw.WrapperService.StopIt()
+   konum: winsw.WrapperService.OnShutdown()
+2026-03-17 07:27:33 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-17 07:27:33 - Started 8000
+2026-03-17 07:43:30 - Stopping orcaapi.exe
+2026-03-17 07:43:30 - ProcessKill 8000
+2026-03-17 07:43:30 - Found child process: 8044 Name: conhost.exe
+2026-03-17 07:43:30 - Found child process: 5460 Name: node.exe
+2026-03-17 07:43:31 - Stopping process 8044
+2026-03-17 07:43:31 - Send SIGINT 8044
+2026-03-17 07:43:31 - SIGINT to 8044 failed - Killing as fallback
+2026-03-17 07:43:31 - Stopping process 5460
+2026-03-17 07:43:31 - Send SIGINT 5460
+2026-03-17 07:43:31 - SIGINT to 5460 failed - Killing as fallback
+2026-03-17 07:43:31 - Stopping process 8000
+2026-03-17 07:43:31 - Send SIGINT 8000
+2026-03-17 07:43:31 - SIGINT to 8000 failed - Killing as fallback
+2026-03-17 07:43:31 - Finished orcaapi.exe
+2026-03-17 07:43:33 - Starting C:\Program Files\nodejs\node.exe  --harmony C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\node_modules\node-windows\lib\wrapper.js --file C:\Users\caner.karadag\Cursor_Projeler\ORCA\app\scripts\db-server.cjs --scriptoptions= --log "OrcaApi wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-03-17 07:43:33 - Started 2892

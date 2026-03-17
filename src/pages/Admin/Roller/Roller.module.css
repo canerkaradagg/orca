@@ -1,0 +1,314 @@
+.page {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* ── Buttons ── */
+
+.btnPrimary {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  background: #1976d2;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #1565c0;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+  background: #eee;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btnSecondary:hover {
+  background: #ddd;
+}
+
+/* ── Messages ── */
+
+.messageOk {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.messageError {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* ── Table ── */
+
+.tableWrap {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.table th {
+  font-weight: 600;
+  color: #333;
+  background: #f8f9fa;
+}
+
+.table tbody tr:hover {
+  background: #fafafa;
+}
+
+.cellBold {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* ── Badges ── */
+
+.badgeActive {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badgeInactive {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f5f5f5;
+  color: #999;
+}
+
+/* ── Row actions ── */
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.btnSmall {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  background: #f0f4ff;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnSmall:hover {
+  background: #e3f2fd;
+}
+
+.btnSmallDanger {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  background: #fff5f5;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnSmallDanger:hover {
+  background: #ffebee;
+}
+
+/* ── Overlay / Modal ── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 440px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.modal h2 {
+  font-size: 1.25rem;
+  margin: 0 0 1.25rem;
+  color: #1a1a1a;
+}
+
+.modalWide {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 95%;
+  max-width: 720px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.modalWide h2 {
+  font-size: 1.25rem;
+  margin: 0 0 1.25rem;
+  color: #1a1a1a;
+}
+
+/* ── Form ── */
+
+.formLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.formLabel span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.formInput {
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* ── Permissions grid ── */
+
+.permGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.permGroup {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.permGroupTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1565c0;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.permRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.permRow:last-child {
+  border-bottom: none;
+}
+
+.permScreen {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input[type='checkbox'] {
+  accent-color: #1976d2;
+  width: 16px;
+  height: 16px;
+}

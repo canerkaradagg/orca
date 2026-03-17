@@ -1,0 +1,1 @@
+export { FinansOnay } from './FinansOnay'

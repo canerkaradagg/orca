@@ -1,0 +1,249 @@
+.page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+.messageOk {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.messageError {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.section {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 640px) {
+  .section {
+    padding: 1.5rem;
+  }
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.sectionHeaderRow .sectionTitle {
+  margin-bottom: 0;
+}
+
+.btnPrimary {
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #fff;
+  background: #1976D2;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #1565c0;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.table th {
+  font-weight: 600;
+  color: #333;
+  background: #f8f9fa;
+}
+
+.table tbody tr:hover {
+  background: #fafafa;
+}
+
+.cellKey {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.cellDesc {
+  color: #666;
+  font-size: 0.9rem;
+  max-width: 320px;
+}
+
+.input {
+  width: 100%;
+  min-width: 120px;
+  max-width: 280px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1976D2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btnDanger {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  color: #c62828;
+  background: #ffebee;
+  border: 1px solid #ef9a9a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnDanger:hover {
+  background: #ffcdd2;
+}
+
+/* Accordion */
+.accordion {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 0.5rem;
+}
+
+.accordionItem {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.accordionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  background: #f8f9fa;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.accordionHeader:hover {
+  background: #eef0f2;
+}
+
+.accordionHeader:focus-visible {
+  outline: 2px solid #1976D2;
+  outline-offset: 2px;
+}
+
+.accordionChevron {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #666;
+  transition: transform 0.2s ease;
+}
+
+.accordionItem[data-open="true"] .accordionChevron {
+  transform: rotate(180deg);
+}
+
+.accordionBody {
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
+.accordionContent {
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid #eee;
+}
+
+.accordionDescription {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}

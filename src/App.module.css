@@ -1,0 +1,286 @@
+/* =====================================================
+   ORCA ASN Portalı – Tema Paleti
+   Sidebar: #152040 (Skechers/ASICS lacivert)
+   Aktif:   #1976D2 (Olka mavi)
+   Ana:     #EEF2F7 (açık mavi-gri)
+   ===================================================== */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: #152040;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 0;
+  transition: width 0.25s ease, min-width 0.25s ease;
+  flex-shrink: 0;
+}
+
+.sidebarCollapsed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.sidebarCollapsed .nav,
+.sidebarCollapsed .logoWrap,
+.sidebarCollapsed .sidebarHeader {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.sidebarToggle {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.sidebarToggle:hover { background: rgba(255, 255, 255, 0.18); }
+
+.sidebarReopen {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  width: 28px;
+  height: 56px;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  background: #152040;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.18);
+  transition: background 0.2s;
+}
+.sidebarReopen:hover { background: #1a2c54; }
+
+/* ── Logo ── */
+.logoWrap {
+  flex: 1;
+  min-width: 0;
+  padding-right: 0.5rem;
+}
+.logo {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  max-height: 42px;
+  object-fit: contain;
+}
+
+/* ── Nav ── */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.75rem;
+}
+
+.navGroup { margin-bottom: 0.25rem; }
+
+.navIcon {
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+.navItemContent {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Accordion ── */
+.accordionTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  text-align: left;
+}
+.accordionTrigger:hover {
+  background: rgba(25, 118, 210, 0.18);
+  color: #fff;
+}
+.accordionTrigger.accordionHasActive { color: #fff; font-weight: 500; }
+
+.accordionChevron {
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.85;
+  transition: transform 0.2s ease;
+}
+.accordionTrigger.accordionOpen .accordionChevron { transform: rotate(90deg); }
+
+.navSub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-left: 0.5rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.navSubOpen {
+  max-height: 220px;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.navSubLink {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.80);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background 0.2s, color 0.2s;
+}
+.navSubLink:hover {
+  background: rgba(25, 118, 210, 0.18);
+  color: #fff;
+}
+.navSubLinkActive {
+  background: rgba(25, 118, 210, 0.45);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ── Sidebar Footer (user info) ── */
+.sidebarFooter {
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userDetail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logoutBtn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.logoutBtn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ── Ana içerik ── */
+.main {
+  flex: 1;
+  min-width: 0;
+  background: #EEF2F7;
+  padding: 1rem;
+  overflow-x: auto;
+  overflow-y: auto;
+  transition: margin 0s;
+}
+
+@media (min-width: 640px) {
+  .main {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .main {
+    padding: 2rem;
+  }
+}
