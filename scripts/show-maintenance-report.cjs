@@ -7,8 +7,8 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 require('dotenv').config({ path: path.join(root, '.env') })
 
-const { getPool } = require('./db/connection-pool.cjs')
-const { runMaintenanceReport } = require('./shared/maintenance-report.cjs')
+const { getPool } = require('../dist/scripts/db/connection-pool')
+const { runMaintenanceReport } = require('../dist/scripts/shared/maintenance-report')
 
 async function main() {
   const pool = getPool()

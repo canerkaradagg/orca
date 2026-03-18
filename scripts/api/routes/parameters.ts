@@ -1,15 +1,18 @@
-const { getPool } = require('../../db/connection-pool.cjs')
-const sql = require('mssql')
-const { readBody, sendOk, sendError, wrapHandler } = require('../middleware.cjs')
+import { getPool } from '../../db/connection-pool'
+import sql from 'mssql'
+import { sendOk, wrapHandler, validateBody } from '../middleware'
+import { putParametersSchema } from '../validators/parameters'
+import { requireScreen, requireAuthOrInternalKey } from '../auth-middleware'
+import type { Router } from '../router'
 
-function register(router) {
-  router.get('/api/parameters', wrapHandler(async (req, res) => {
+export function register(router: Router): void {
+  router.get('/api/parameters', wrapHandler(requireAuthOrInternalKey(async (_req, res) => {
     const pool = getPool()
     const sqlPool = await pool.getPool()
     const result = await sqlPool.request().query(
       'SELECT ParameterKey AS parameterKey, ParameterValue AS parameterValue, Description AS description, UpdatedAt AS updatedAt, UpdatedBy AS updatedBy FROM dbo.SystemParameter ORDER BY ParameterKey'
     )
-    const rows = (result.recordset || []).map(r => ({
+    const rows = (result.recordset || []).map((r: Record<string, unknown>) => ({
       parameterKey: String(r.parameterKey ?? ''),
       parameterValue: r.parameterValue != null ? String(r.parameterValue) : '',
       description: r.description != null ? String(r.description) : '',
@@ -17,20 +20,20 @@ function register(router) {
       updatedBy: r.updatedBy != null ? String(r.updatedBy) : null,
     }))
     sendOk(res, { parameters: rows })
-  }))
+  })))
 
-  router.put('/api/parameters', wrapHandler(async (req, res) => {
-    const body = JSON.parse(await readBody(req))
+  router.put('/api/parameters', wrapHandler(requireScreen('parametreler', 'canEdit')(validateBody(putParametersSchema)(async (req, res) => {
+    const body = (req as { body: Record<string, unknown> }).body
     const list = Array.isArray(body.parameters)
       ? body.parameters
       : (body.parameterKey != null ? [{ parameterKey: body.parameterKey, parameterValue: body.parameterValue }] : [])
-    if (list.length === 0) return sendError(res, 400, 'parameters array or parameterKey/parameterValue required')
     const pool = getPool()
     const sqlPool = await pool.getPool()
     const updatedBy = (body.updatedBy != null && String(body.updatedBy).trim()) ? String(body.updatedBy).trim() : null
     for (const item of list) {
-      const key = (item.parameterKey ?? item.key ?? '').toString().trim()
-      const val = (item.parameterValue ?? item.value ?? '').toString()
+      const it = item as Record<string, unknown>
+      const key = (it.parameterKey ?? it.key ?? '').toString().trim()
+      const val = (it.parameterValue ?? it.value ?? '').toString()
       if (!key) continue
       const reqUp = sqlPool.request()
       reqUp.input('Key', sql.NVarChar(100), key)
@@ -44,7 +47,5 @@ function register(router) {
       `)
     }
     sendOk(res)
-  }))
+  }))))
 }
-
-module.exports = { register }

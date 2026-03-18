@@ -2,7 +2,7 @@ const path = require('path')
 const fs = require('fs')
 const root = path.join(__dirname, '../..')
 require('dotenv').config({ path: path.join(root, '.env') })
-const { getPool } = require('./connection-pool.cjs')
+const { getPool } = require('../../dist/scripts/db/connection-pool')
 
 const file = process.argv[2] || '18_DropIsQuarantine.sql'
 const filePath = path.join(root, 'db', 'scripts', file)

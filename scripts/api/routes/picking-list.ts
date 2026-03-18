@@ -1,9 +1,11 @@
-const { getPool } = require('../../db/connection-pool.cjs')
-const sql = require('mssql')
-const { readBody, getQueryParams, sendOk, sendError, wrapHandler } = require('../middleware.cjs')
-const { requireAuth } = require('../auth-middleware.cjs')
+import { getPool } from '../../db/connection-pool'
+import sql from 'mssql'
+import { readBody, getQueryParams, sendOk, sendError, wrapHandler } from '../middleware'
+import { requireAuth } from '../auth-middleware'
+import type { Router } from '../router'
+import type { IncomingMessage } from 'http'
 
-function register(router) {
+export function register(router: Router): void {
 
   router.get('/api/picking-lists', wrapHandler(requireAuth(async (req, res) => {
     const pool = getPool()
@@ -21,7 +23,7 @@ function register(router) {
     const request = sqlPool.request()
     request.input('Offset', sql.Int, offset)
     request.input('PageSize', sql.Int, pageSize)
-    const conditions = []
+    const conditions: string[] = []
 
     if (company) { request.input('Company', sql.NVarChar(10), company); conditions.push('pl.Company = @Company') }
     if (customer) { request.input('Customer', sql.VarChar(30), customer); conditions.push('pl.CustomerCode = @Customer') }
@@ -46,30 +48,30 @@ function register(router) {
        ORDER BY pl.CreatedTime DESC
        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
     `)
-    const raw = result.recordset || []
+    const raw = (result.recordset as Record<string, unknown>[]) || []
     const totalCount = raw.length > 0 ? (raw[0]._totalCount ?? 0) : 0
     const rows = raw.map(r => ({
       id: r.PickingListId,
       listeNo: String(r.PickingListId),
-      tarih: r.CreatedTime ? new Date(r.CreatedTime).toISOString().slice(0, 10) : '',
+      tarih: r.CreatedTime ? new Date(r.CreatedTime as string | number).toISOString().slice(0, 10) : '',
       firma: r.Company || '',
       musteri: r.CustomerName || r.CustomerCode || '',
       durum: r.Status,
       siparisSayisi: r.OrderCount ?? 0,
       olusturan: r.CreatedByName || '',
-      olusturmaZamani: r.CreatedTime ? new Date(r.CreatedTime).toLocaleString('tr-TR') : '',
+      olusturmaZamani: r.CreatedTime ? new Date(r.CreatedTime as string | number).toLocaleString('tr-TR') : '',
       listType: r.ListType,
     }))
     sendOk(res, { rows, totalCount })
   })))
 
   router.post('/api/picking-lists', wrapHandler(requireAuth(async (req, res) => {
-    const body = JSON.parse(await readBody(req))
-    const company = (body.company || '').trim()
-    const customerCode = (body.customerCode || '').trim()
-    const listType = body.listType != null ? parseInt(body.listType, 10) : 1
+    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
+    const company = (body.company || '').toString().trim()
+    const customerCode = (body.customerCode || '').toString().trim()
+    const listType = body.listType != null ? parseInt(String(body.listType), 10) : 1
     const singleWaybill = !!body.singleWaybill
-    const dispOrderIds = Array.isArray(body.dispOrderIds) ? body.dispOrderIds.map(id => parseInt(id, 10)).filter(n => !isNaN(n)) : []
+    const dispOrderIds = Array.isArray(body.dispOrderIds) ? body.dispOrderIds.map((id: unknown) => parseInt(String(id), 10)).filter((n: number) => !isNaN(n)) : []
     if (!company || !customerCode || dispOrderIds.length === 0) return sendError(res, 400, 'company, customerCode ve dispOrderIds gerekli.')
     const pool = getPool()
     const sqlPool = await pool.getPool()
@@ -78,11 +80,11 @@ function register(router) {
       .input('Company', sql.NVarChar(10), company)
       .input('CustomerCode', sql.VarChar(30), customerCode)
       .input('SingleWaybill', sql.Bit, singleWaybill ? 1 : 0)
-      .input('UserId', sql.Int, req.user.userId)
+      .input('UserId', sql.Int, (req as IncomingMessage & { user?: Record<string, unknown> }).user?.userId ?? 0)
       .query(`INSERT INTO dbo.PickingLists (ListType, PickingDate, Company, CustomerCode, Status, CreatedUserId, SingleWaybill)
               OUTPUT INSERTED.PickingListId
               VALUES (@ListType, GETDATE(), @Company, @CustomerCode, 1, @UserId, @SingleWaybill)`)
-    const pickingListId = insResult.recordset?.[0]?.PickingListId
+    const pickingListId = (insResult.recordset as Record<string, unknown>[])?.[0]?.PickingListId
     if (!pickingListId) return sendError(res, 500, 'Çeki listesi oluşturulamadı.')
     const col = listType === 2 ? 'RealPickingListId' : 'DraftPickingListId'
     for (const id of dispOrderIds) {
@@ -94,7 +96,7 @@ function register(router) {
     sendOk(res, { pickingListId, orderCount: dispOrderIds.length })
   })))
 
-  router.get('/api/picking-lists/:id', wrapHandler(requireAuth(async (req, res, params) => {
+  router.get('/api/picking-lists/:id', wrapHandler(requireAuth(async (_req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
     const pool = getPool()
     const sqlPool = await pool.getPool()
@@ -106,7 +108,7 @@ function register(router) {
         LEFT JOIN dbo.Users u ON u.UserId = pl.CreatedUserId
        WHERE pl.PickingListId = @Id
     `)
-    const pickingList = plResult.recordset?.[0]
+    const pickingList = (plResult.recordset as Record<string, unknown>[])?.[0]
     if (!pickingList) return sendError(res, 404, 'Çeki listesi bulunamadı.')
     const ordersResult = await sqlPool.request().input('Id', sql.Int, id).query(`
       SELECT doh.DispOrderHeaderId, doh.DispOrderNumber, doh.DispOrderDate, doh.CurrAccCode, doh.WarehouseCode,
@@ -117,7 +119,7 @@ function register(router) {
        WHERE doh.DraftPickingListId = @Id OR doh.RealPickingListId = @Id
        ORDER BY doh.DispOrderNumber
     `)
-    let cases = []
+    let cases: Record<string, unknown>[] = []
     if (pickingList.ListType === 2) {
       const casesResult = await sqlPool.request().input('Id', sql.Int, id).query(`
         SELECT c.DispOrderCaseId, c.DispOrderHeaderId, c.CaseCode, c.CustomerSASNo, doh.DispOrderNumber
@@ -125,12 +127,12 @@ function register(router) {
           INNER JOIN dbo.DispOrderHeader doh WITH (NOLOCK) ON doh.DispOrderHeaderId = c.DispOrderHeaderId AND (doh.RealPickingListId = @Id)
          ORDER BY doh.DispOrderNumber, c.DispOrderCaseId
       `)
-      cases = casesResult.recordset || []
+      cases = (casesResult.recordset as Record<string, unknown>[]) || []
     }
-    sendOk(res, { pickingList, orders: ordersResult.recordset || [], cases })
+    sendOk(res, { pickingList, orders: (ordersResult.recordset as Record<string, unknown>[]) || [], cases })
   })))
 
-  router.post('/api/picking-lists/:id/send', wrapHandler(requireAuth(async (req, res, params) => {
+  router.post('/api/picking-lists/:id/send', wrapHandler(requireAuth(async (_req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
     const pool = getPool()
     const sqlPool = await pool.getPool()
@@ -139,14 +141,14 @@ function register(router) {
     sendOk(res)
   })))
 
-  router.post('/api/picking-lists/:id/approve', wrapHandler(requireAuth(async (req, res, params) => {
+  router.post('/api/picking-lists/:id/approve', wrapHandler(requireAuth(async (_req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
     const pool = getPool()
     const sqlPool = await pool.getPool()
     const pl = await sqlPool.request().input('Id', sql.Int, id).query(`
       SELECT PickingListId, ListType, SingleWaybill FROM dbo.PickingLists WITH (NOLOCK) WHERE PickingListId = @Id AND Status = 2
     `)
-    const list = pl.recordset?.[0]
+    const list = (pl.recordset as Record<string, unknown>[])?.[0]
     if (!list) return sendError(res, 404, 'Çeki listesi bulunamadı veya onay bekliyor durumunda değil.')
     if (list.ListType === 2) {
       if (list.SingleWaybill) {
@@ -154,27 +156,25 @@ function register(router) {
           SELECT 1 FROM dbo.DispOrderHeader WITH (NOLOCK)
            WHERE RealPickingListId = @Id AND (CustomerSASNo IS NULL OR RTRIM(CustomerSASNo) = '')
         `)
-        if ((missing.recordset || []).length > 0) return sendError(res, 400, 'SAS listesinde tüm sevk emirlerinin SAS no girişi yapılmış olmalıdır.')
+        if (((missing.recordset as Record<string, unknown>[])?.length ?? 0) > 0) return sendError(res, 400, 'SAS listesinde tüm sevk emirlerinin SAS no girişi yapılmış olmalıdır.')
       } else {
         const missing = await sqlPool.request().input('Id', sql.Int, id).query(`
           SELECT 1 FROM dbo.DispOrderCase c WITH (NOLOCK)
           INNER JOIN dbo.DispOrderHeader h WITH (NOLOCK) ON h.DispOrderHeaderId = c.DispOrderHeaderId AND h.RealPickingListId = @Id
            WHERE c.CustomerSASNo IS NULL OR RTRIM(c.CustomerSASNo) = ''
         `)
-        if ((missing.recordset || []).length > 0) return sendError(res, 400, 'SAS listesinde tüm kolilerin SAS no girişi yapılmış olmalıdır.')
+        if (((missing.recordset as Record<string, unknown>[])?.length ?? 0) > 0) return sendError(res, 400, 'SAS listesinde tüm kolilerin SAS no girişi yapılmış olmalıdır.')
       }
-      // WMS'e müşteri onayı + SAS gönderimi: placeholder (gerçek entegrasyon sonra eklenecek)
-      // await sendCustomerApprovalAndSASToWMS(id)
     }
     await sqlPool.request().input('Id', sql.Int, id)
       .query("UPDATE dbo.PickingLists SET Status = 3, ApproveDate = GETDATE() WHERE PickingListId = @Id AND Status = 2")
     sendOk(res)
   })))
 
-  router.post('/api/picking-lists/:id/reject', wrapHandler(requireAuth(async (req, res, params) => {
+  router.post('/api/picking-lists/:id/reject', wrapHandler(requireAuth(async (req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
-    const body = JSON.parse(await readBody(req))
-    const note = (body.note || '').trim()
+    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
+    const note = (body.note || '').toString().trim()
     const pool = getPool()
     const sqlPool = await pool.getPool()
     await sqlPool.request().input('Id', sql.Int, id).input('Note', sql.NVarChar(sql.MAX), note)
@@ -182,7 +182,7 @@ function register(router) {
     sendOk(res)
   })))
 
-  router.post('/api/picking-lists/:id/cancel', wrapHandler(requireAuth(async (req, res, params) => {
+  router.post('/api/picking-lists/:id/cancel', wrapHandler(requireAuth(async (_req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
     const pool = getPool()
     const sqlPool = await pool.getPool()
@@ -214,7 +214,6 @@ function register(router) {
       whereExtra = ' AND ec.CustomerApproval = 1'
     } else {
       whereExtra = ' AND ec.SASRequest = 1'
-      // Kolileme bitti kontrolü WMS entegrasyonunda IsCollected/WarehouseStatus ile yapılacak; şimdilik tüm SAS talepli sevkler listelenir
     }
     if (fromDate) {
       request.input('FromDate', sql.Date, fromDate)
@@ -237,12 +236,12 @@ function register(router) {
          ${whereExtra}
        ORDER BY doh.DispOrderDate DESC
     `)
-    sendOk(res, { rows: result.recordset || [] })
+    sendOk(res, { rows: (result.recordset as Record<string, unknown>[]) || [] })
   })))
 
-  router.post('/api/picking-lists/:id/sas', wrapHandler(requireAuth(async (req, res, params) => {
+  router.post('/api/picking-lists/:id/sas', wrapHandler(requireAuth(async (req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
-    const body = JSON.parse(await readBody(req))
+    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
     const singleWaybill = !!body.singleWaybill
     const items = Array.isArray(body.items) ? body.items : []
     if (items.length === 0) return sendError(res, 400, 'En az bir kayıt gerekli.')
@@ -251,19 +250,19 @@ function register(router) {
     const pl = await sqlPool.request().input('Id', sql.Int, id).query(`
       SELECT PickingListId, ListType, SingleWaybill FROM dbo.PickingLists WITH (NOLOCK) WHERE PickingListId = @Id
     `)
-    const list = pl.recordset?.[0]
+    const list = (pl.recordset as Record<string, unknown>[])?.[0]
     if (!list || list.ListType !== 2) return sendError(res, 400, 'SAS sadece SAS talebi (ListType=2) listelerde kaydedilir.')
     const col = list.ListType === 2 ? 'RealPickingListId' : 'DraftPickingListId'
     if (singleWaybill) {
-      const headerIds = items.map(i => parseInt(i.dispOrderHeaderId, 10)).filter(n => !isNaN(n))
-      const sasMap = new Map(items.map(i => [parseInt(i.dispOrderHeaderId, 10), (i.customerSASNo || '').trim()]))
+      const headerIds = (items as Record<string, unknown>[]).map(i => parseInt(String(i.dispOrderHeaderId), 10)).filter(n => !isNaN(n))
+      const sasMap = new Map((items as Record<string, unknown>[]).map(i => [parseInt(String(i.dispOrderHeaderId), 10), (i.customerSASNo || '').toString().trim()]))
       if (headerIds.length === 0) return sendError(res, 400, 'Geçerli sevk emri id gerekli.')
       const belongs = await sqlPool.request()
         .input('Id', sql.Int, id)
         .input('Ids', sql.NVarChar(500), headerIds.join(','))
         .query(`SELECT DispOrderHeaderId FROM dbo.DispOrderHeader WITH (NOLOCK) WHERE ${col} = @Id AND DispOrderHeaderId IN (SELECT value FROM STRING_SPLIT(@Ids, ','))`)
-      const allowedIds = new Set((belongs.recordset || []).map(r => r.DispOrderHeaderId))
-      const duplicates = new Map()
+      const allowedIds = new Set(((belongs.recordset as Record<string, unknown>[]) || []).map(r => r.DispOrderHeaderId))
+      const duplicates = new Map<string, number>()
       for (const [hid, no] of sasMap) {
         if (!no) continue
         const prev = duplicates.get(no)
@@ -279,8 +278,8 @@ function register(router) {
           .query('UPDATE dbo.DispOrderHeader SET CustomerSASNo = NULLIF(@SasNo, \'\') WHERE DispOrderHeaderId = @DohId')
       }
     } else {
-      const caseIds = items.map(i => parseInt(i.dispOrderCaseId, 10)).filter(n => !isNaN(n))
-      const sasMap = new Map(items.map(i => [parseInt(i.dispOrderCaseId, 10), (i.customerSASNo || '').trim()]))
+      const caseIds = (items as Record<string, unknown>[]).map(i => parseInt(String(i.dispOrderCaseId), 10)).filter(n => !isNaN(n))
+      const sasMap = new Map((items as Record<string, unknown>[]).map(i => [parseInt(String(i.dispOrderCaseId), 10), (i.customerSASNo || '').toString().trim()]))
       if (caseIds.length === 0) return sendError(res, 400, 'Geçerli koli id gerekli.')
       const caseIdsParam = caseIds.join(',')
       const belongsResult = await sqlPool.request()
@@ -291,8 +290,8 @@ function register(router) {
           INNER JOIN dbo.DispOrderHeader h WITH (NOLOCK) ON h.DispOrderHeaderId = c.DispOrderHeaderId AND h.RealPickingListId = @Id
           WHERE c.DispOrderCaseId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@CaseIds, ',') WHERE TRY_CAST(value AS INT) IS NOT NULL)
         `)
-      const allowedCaseIds = new Set((belongsResult.recordset || []).map(r => r.DispOrderCaseId))
-      const duplicates = new Map()
+      const allowedCaseIds = new Set(((belongsResult.recordset as Record<string, unknown>[]) || []).map(r => r.DispOrderCaseId))
+      const duplicates = new Map<string, number>()
       for (const [cid, no] of sasMap) {
         if (!no) continue
         const prev = duplicates.get(no)
@@ -311,9 +310,9 @@ function register(router) {
     sendOk(res, { ok: true })
   })))
 
-  router.post('/api/picking-lists/:id/upload-cases', wrapHandler(requireAuth(async (req, res, params) => {
+  router.post('/api/picking-lists/:id/upload-cases', wrapHandler(requireAuth(async (req, res, params: Record<string, string>) => {
     const id = parseInt(params.id, 10)
-    const body = JSON.parse(await readBody(req))
+    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
     const rows = Array.isArray(body.rows) ? body.rows : []
     if (rows.length === 0) return sendError(res, 400, 'Excel verisi (rows) gerekli.')
     const pool = getPool()
@@ -321,23 +320,23 @@ function register(router) {
     const pl = await sqlPool.request().input('Id', sql.Int, id).query(`
       SELECT PickingListId, ListType, SingleWaybill FROM dbo.PickingLists WITH (NOLOCK) WHERE PickingListId = @Id
     `)
-    const list = pl.recordset?.[0]
+    const list = (pl.recordset as Record<string, unknown>[])?.[0]
     if (!list || list.ListType !== 2) return sendError(res, 400, 'Toplu SAS yükleme sadece SAS talebi listelerde kullanılır.')
     const singleWaybill = !!list.SingleWaybill
-    const items = singleWaybill
-      ? rows.map(r => ({ dispOrderHeaderId: parseInt(r.dispOrderHeaderId, 10), customerSASNo: (r.customerSASNo || '').trim() })).filter(i => !isNaN(i.dispOrderHeaderId))
-      : rows.map(r => ({ dispOrderCaseId: parseInt(r.dispOrderCaseId, 10), customerSASNo: (r.customerSASNo || '').trim() })).filter(i => !isNaN(i.dispOrderCaseId))
-    if (items.length === 0) return sendError(res, 400, 'Geçerli satır bulunamadı.')
     const col = 'RealPickingListId'
+    let processedCount = 0
     if (singleWaybill) {
-      const headerIds = items.map(i => i.dispOrderHeaderId)
-      const sasMap = new Map(items.map(i => [i.dispOrderHeaderId, i.customerSASNo]))
+      const headerItems = (rows as Record<string, unknown>[]).map(r => ({ dispOrderHeaderId: parseInt(String(r.dispOrderHeaderId), 10), customerSASNo: (r.customerSASNo || '').toString().trim() })).filter((i): i is { dispOrderHeaderId: number; customerSASNo: string } => !isNaN(i.dispOrderHeaderId))
+      if (headerItems.length === 0) return sendError(res, 400, 'Geçerli satır bulunamadı.')
+      processedCount = headerItems.length
+      const headerIds = headerItems.map(i => i.dispOrderHeaderId)
+      const sasMap = new Map(headerItems.map(i => [i.dispOrderHeaderId, i.customerSASNo]))
       const belongsResult = await sqlPool.request()
         .input('Id', sql.Int, id)
         .input('Ids', sql.NVarChar(500), headerIds.join(','))
         .query(`SELECT DispOrderHeaderId FROM dbo.DispOrderHeader WITH (NOLOCK) WHERE ${col} = @Id AND DispOrderHeaderId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@Ids, ',') WHERE TRY_CAST(value AS INT) IS NOT NULL)`)
-      const allowedIds = new Set((belongsResult.recordset || []).map(r => r.DispOrderHeaderId))
-      const seenSas = new Map()
+      const allowedIds = new Set(((belongsResult.recordset as Record<string, unknown>[]) || []).map(r => r.DispOrderHeaderId))
+      const seenSas = new Map<string, number>()
       for (const [hid, no] of sasMap) {
         if (!no) continue
         if (seenSas.has(no) && seenSas.get(no) !== hid) return sendError(res, 400, 'Aynı SAS no birden fazla sevk emrine verilemez.')
@@ -352,8 +351,11 @@ function register(router) {
           .query('UPDATE dbo.DispOrderHeader SET CustomerSASNo = NULLIF(@SasNo, \'\') WHERE DispOrderHeaderId = @DohId')
       }
     } else {
-      const caseIds = items.map(i => i.dispOrderCaseId)
-      const sasMap = new Map(items.map(i => [i.dispOrderCaseId, i.customerSASNo]))
+      const caseItems = (rows as Record<string, unknown>[]).map(r => ({ dispOrderCaseId: parseInt(String(r.dispOrderCaseId), 10), customerSASNo: (r.customerSASNo || '').toString().trim() })).filter((i): i is { dispOrderCaseId: number; customerSASNo: string } => !isNaN(i.dispOrderCaseId))
+      if (caseItems.length === 0) return sendError(res, 400, 'Geçerli satır bulunamadı.')
+      processedCount = caseItems.length
+      const caseIds = caseItems.map(i => i.dispOrderCaseId)
+      const sasMap = new Map(caseItems.map(i => [i.dispOrderCaseId, i.customerSASNo]))
       const belongsResult = await sqlPool.request()
         .input('Id', sql.Int, id)
         .input('CaseIds', sql.NVarChar(1000), caseIds.join(','))
@@ -362,8 +364,8 @@ function register(router) {
           INNER JOIN dbo.DispOrderHeader h WITH (NOLOCK) ON h.DispOrderHeaderId = c.DispOrderHeaderId AND h.RealPickingListId = @Id
           WHERE c.DispOrderCaseId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@CaseIds, ',') WHERE TRY_CAST(value AS INT) IS NOT NULL)
         `)
-      const allowedCaseIds = new Set((belongsResult.recordset || []).map(r => r.DispOrderCaseId))
-      const seenSas = new Map()
+      const allowedCaseIds = new Set(((belongsResult.recordset as Record<string, unknown>[]) || []).map(r => r.DispOrderCaseId))
+      const seenSas = new Map<string, number>()
       for (const [cid, no] of sasMap) {
         if (!no) continue
         if (seenSas.has(no) && seenSas.get(no) !== cid) return sendError(res, 400, 'Aynı SAS no birden fazla kolide kullanılamaz.')
@@ -378,8 +380,6 @@ function register(router) {
           .query('UPDATE dbo.DispOrderCase SET CustomerSASNo = NULLIF(@SasNo, \'\') WHERE DispOrderCaseId = @Cid')
       }
     }
-    sendOk(res, { ok: true, processed: items.length })
+    sendOk(res, { ok: true, processed: processedCount })
   })))
 }
-
-module.exports = { register }

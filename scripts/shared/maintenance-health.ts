@@ -1,13 +1,21 @@
 /**
  * ORCA bakım sağlık kontrolü – eşik tabanlı kontrol ve isteğe bağlı bakım
- * Günlük: sadece kontrol + öneri. Eşik aşıldığında (MaintenanceRunFixWhenNeeded=1) REBUILD/UPDATE STATISTICS uygulanır.
  */
+
+import type { ConnectionPool } from 'mssql'
 
 const TABLE_LIST = ['Inbound', 'InboundAsn', 'InboundAsnLine', 'Request', 'ReceivedOrder', 'DraftOrderHeader', 'DraftOrderLine', 'DraftOrderLot', 'Queue', 'QueueLog', 'QueueLogDetail']
 const STATS_TABLES = ['Queue', 'Request', 'InboundAsn', 'DraftOrderHeader', 'QueueLog', 'Inbound', 'DraftOrderLine', 'QueueLogDetail']
 
-async function getThresholds(sqlPool) {
-  const defaults = {
+interface Thresholds {
+  tableRowWarning: number
+  fragmentationPercent: number
+  statisticsStaleDays: number
+  runFixWhenNeeded: boolean
+}
+
+export async function getThresholds(sqlPool: ConnectionPool): Promise<Thresholds> {
+  const defaults: Thresholds = {
     tableRowWarning: 500000,
     fragmentationPercent: 15,
     statisticsStaleDays: 7,
@@ -41,36 +49,38 @@ async function getThresholds(sqlPool) {
   return defaults
 }
 
-async function runHealthCheck(sqlPool, options = {}) {
+interface HealthCheckResult {
+  reportLines: string[]
+  recommendations: string[]
+  actionsTaken: string[]
+  thresholds: Thresholds
+}
+
+export async function runHealthCheck(sqlPool: ConnectionPool, options: { runMaintenance?: boolean } = {}): Promise<HealthCheckResult> {
   const { runMaintenance = false } = options
-  const reportLines = []
-  const recommendations = []
-  const actionsTaken = []
+  const reportLines: string[] = []
+  const recommendations: string[] = []
+  const actionsTaken: string[] = []
   const thresholds = await getThresholds(sqlPool)
   const doFix = runMaintenance && thresholds.runFixWhenNeeded
 
   reportLines.push('--- Eşikler ---')
   reportLines.push(`Tablo satır uyarı: ${thresholds.tableRowWarning} | Fragmantasyon: >%${thresholds.fragmentationPercent} | İstatistik eski: ${thresholds.statisticsStaleDays} gün | Eşik aşımında bakım: ${thresholds.runFixWhenNeeded ? 'Açık' : 'Kapalı'}`)
-  reportLines.push('')
-
-  // --- Tablo satır sayıları + yedekleme önerisi ---
   reportLines.push('--- Tablo satır sayıları ---')
   for (const t of TABLE_LIST) {
     try {
       const r = await sqlPool.request().query(`SELECT COUNT(*) AS cnt FROM dbo.[${t}]`)
-      const cnt = Number(r.recordset?.[0]?.cnt ?? 0)
+      const cnt = Number((r.recordset as Record<string, { cnt: number }>[])?.[0]?.cnt ?? 0)
       reportLines.push(`${t}: ${cnt}`)
       if (thresholds.tableRowWarning > 0 && cnt >= thresholds.tableRowWarning) {
-        const msg = `Yedekleme/arşiv önerisi: ${t} (${cnt} satır, eşik: ${thresholds.tableRowWarning})`
-        recommendations.push(msg)
+        recommendations.push(`Yedekleme/arşiv önerisi: ${t} (${cnt} satır, eşik: ${thresholds.tableRowWarning})`)
       }
     } catch (e) {
-      reportLines.push(`${t}: (hata: ${e.message})`)
+      reportLines.push(`${t}: (hata: ${(e as Error).message})`)
     }
   }
   reportLines.push('')
 
-  // --- Fragmantasyon (eşik üzeri listele; istenirse REORGANIZE/REBUILD) ---
   const fragThreshold = Math.max(1, thresholds.fragmentationPercent)
   reportLines.push(`--- Index fragmantasyonu (eşik >%${fragThreshold}, sayfa >100) ---`)
   try {
@@ -86,33 +96,33 @@ async function runHealthCheck(sqlPool, options = {}) {
     if (fragRows.length === 0) reportLines.push('Eşik üzeri fragmantasyon yok.')
     else {
       for (const row of fragRows) {
-        const pct = Number(row.avg_fragmentation_in_percent).toFixed(1)
-        reportLines.push(`  ${row.TableName}.${row.IndexName}: ${pct}% (${row.page_count} sayfa)`)
+        const rw = row as Record<string, unknown>
+        const pct = Number(rw.avg_fragmentation_in_percent).toFixed(1)
+        reportLines.push(`  ${rw.TableName}.${rw.IndexName}: ${pct}% (${rw.page_count} sayfa)`)
         if (doFix) {
           try {
-            const schema = row.sch || 'dbo'
-            const tableName = row.TableName
-            const indexName = row.IndexName
-            const useRebuild = row.avg_fragmentation_in_percent > 30
+            const schema = (rw.sch as string) || 'dbo'
+            const tableName = rw.TableName as string
+            const indexName = rw.IndexName as string
+            const useRebuild = Number(rw.avg_fragmentation_in_percent) > 30
             const cmd = useRebuild
               ? `ALTER INDEX [${indexName}] ON [${schema}].[${tableName}] REBUILD`
               : `ALTER INDEX [${indexName}] ON [${schema}].[${tableName}] REORGANIZE`
             await sqlPool.request().query(cmd)
             actionsTaken.push(`${tableName}.${indexName}: ${useRebuild ? 'REBUILD' : 'REORGANIZE'} uygulandı`)
           } catch (e) {
-            recommendations.push(`Fragmantasyon düzeltme hatası ${row.TableName}.${row.IndexName}: ${e.message}`)
+            recommendations.push(`Fragmantasyon düzeltme hatası ${rw.TableName}.${rw.IndexName}: ${(e as Error).message}`)
           }
         } else {
-          recommendations.push(`Fragmantasyon: ${row.TableName}.${row.IndexName} ${pct}% – REBUILD/REORGANIZE önerilir`)
+          recommendations.push(`Fragmantasyon: ${rw.TableName}.${rw.IndexName} ${pct}% – REBUILD/REORGANIZE önerilir`)
         }
       }
     }
   } catch (e) {
-    reportLines.push(`Hata: ${e.message}`)
+    reportLines.push(`Hata: ${(e as Error).message}`)
   }
   reportLines.push('')
 
-  // --- Eksik index (mevcut) ---
   reportLines.push('--- Eksik index önerisi (OrcaAlokasyon, ilk 5) ---')
   try {
     const r = await sqlPool.request().query(`
@@ -125,13 +135,12 @@ async function runHealthCheck(sqlPool, options = {}) {
     `)
     const rows = r.recordset || []
     if (rows.length === 0) reportLines.push('Öneri yok.')
-    else rows.forEach(row => reportLines.push(`  ${row.statement} (impact: ${row.avg_user_impact}, seeks: ${row.user_seeks})`))
+    else rows.forEach((row: Record<string, unknown>) => reportLines.push(`  ${row.statement} (impact: ${row.avg_user_impact}, seeks: ${row.user_seeks})`))
   } catch (e) {
-    reportLines.push(`Hata: ${e.message}`)
+    reportLines.push(`Hata: ${(e as Error).message}`)
   }
   reportLines.push('')
 
-  // --- Kullanılmayan index (drop adayı; otomatik silme yok) ---
   reportLines.push('--- Kullanılmayan index (inceleme önerisi) ---')
   try {
     const r = await sqlPool.request().query(`
@@ -146,22 +155,21 @@ async function runHealthCheck(sqlPool, options = {}) {
     const rows = r.recordset || []
     if (rows.length === 0) reportLines.push('Şu an kullanılmayan index önerisi yok (DMV son yeniden başlatmadan beri).')
     else {
-      rows.slice(0, 15).forEach(row => {
+      (rows as Record<string, unknown>[]).slice(0, 15).forEach((row: Record<string, unknown>) => {
         reportLines.push(`  ${row.TableName}.${row.IndexName}`)
         recommendations.push(`Kullanılmayan index incele: ${row.TableName}.${row.IndexName} – gerek yoksa DROP adayı`)
       })
       if (rows.length > 15) reportLines.push(`  ... ve ${rows.length - 15} adet daha`)
     }
   } catch (e) {
-    reportLines.push(`Hata: ${e.message}`)
+    reportLines.push(`Hata: ${(e as Error).message}`)
   }
   reportLines.push('')
 
-  // --- İstatistik yaşı (eşik: X günden eski = güncelle) ---
   reportLines.push('--- İstatistik yaşı (eşik: ' + thresholds.statisticsStaleDays + ' gün) ---')
   const staleCutoff = new Date()
   staleCutoff.setDate(staleCutoff.getDate() - Math.max(0, thresholds.statisticsStaleDays))
-  const tablesToUpdateStats = []
+  const tablesToUpdateStats: string[] = []
   for (const t of STATS_TABLES) {
     try {
       const r = await sqlPool.request().query(`
@@ -170,12 +178,12 @@ async function runHealthCheck(sqlPool, options = {}) {
         INNER JOIN sys.objects o ON o.object_id = s.object_id
         WHERE o.name = N'${t.replace(/'/g, "''")}' AND o.schema_id = SCHEMA_ID('dbo')
       `)
-      const lastUpdated = r.recordset?.[0]?.lastUpdated
+      const lastUpdated = (r.recordset as Record<string, Date>[])?.[0]?.lastUpdated
       const isStale = !lastUpdated || new Date(lastUpdated) < staleCutoff
       reportLines.push(`  ${t}: ${lastUpdated ? new Date(lastUpdated).toISOString().slice(0, 10) : 'yok'} ${isStale ? '(eski – güncelleme önerilir)' : ''}`)
       if (isStale) tablesToUpdateStats.push(t)
     } catch (e) {
-      reportLines.push(`  ${t}: ${e.message}`)
+      reportLines.push(`  ${t}: ${(e as Error).message}`)
     }
   }
   if (doFix && tablesToUpdateStats.length > 0) {
@@ -184,7 +192,7 @@ async function runHealthCheck(sqlPool, options = {}) {
         await sqlPool.request().query(`UPDATE STATISTICS dbo.[${t}] WITH FULLSCAN`)
         actionsTaken.push(`İstatistik güncellendi: ${t}`)
       } catch (e) {
-        recommendations.push(`İstatistik güncelleme hatası ${t}: ${e.message}`)
+        recommendations.push(`İstatistik güncelleme hatası ${t}: ${(e as Error).message}`)
       }
     }
   } else if (tablesToUpdateStats.length > 0) {
@@ -192,7 +200,6 @@ async function runHealthCheck(sqlPool, options = {}) {
   }
   reportLines.push('')
 
-  // --- View ve SP (performans incelemesi önerisi) ---
   reportLines.push('--- View ve SP ---')
   try {
     const r = await sqlPool.request().query(`
@@ -202,13 +209,11 @@ async function runHealthCheck(sqlPool, options = {}) {
     `)
     const rows = r.recordset || []
     if (rows.length === 0) reportLines.push('View/SP yok.')
-    else rows.forEach(row => reportLines.push(`  ${row.type_desc}: ${row.cnt} adet`))
+    else (rows as Record<string, unknown>[]).forEach((row: Record<string, unknown>) => reportLines.push(`  ${row.type_desc}: ${row.cnt} adet`))
     reportLines.push('  Öneri: Indexe uygun olmayan join veya ağır sorgular için Execution plan ile kontrol edin.')
   } catch (e) {
-    reportLines.push(`Hata: ${e.message}`)
+    reportLines.push(`Hata: ${(e as Error).message}`)
   }
 
   return { reportLines, recommendations, actionsTaken, thresholds }
 }
-
-module.exports = { getThresholds, runHealthCheck }

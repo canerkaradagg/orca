@@ -2,3 +2,8 @@ node_modules
 dist
 .env
 UploadedASNFiles
+
+# Logs (daemon, wrapper, IDE)
+*.log
+scripts/daemon/*.log
+.cursor/debug.log

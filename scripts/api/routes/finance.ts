@@ -1,13 +1,16 @@
-const { getPool } = require('../../db/connection-pool.cjs')
-const sql = require('mssql')
-const { readBody, getQueryParams, sendOk, sendError, wrapHandler } = require('../middleware.cjs')
-const { requireAuth } = require('../auth-middleware.cjs')
+import { getPool } from '../../db/connection-pool'
+import sql from 'mssql'
+import { readBody, getQueryParams, sendOk, sendError, wrapHandler } from '../middleware'
+import { requireAuth } from '../auth-middleware'
+import logger from '../../lib/logger'
+import type { Router } from '../router'
+import type { IncomingMessage } from 'http'
 
 /** SQL satırını frontend DispOrder formatına (camelCase) çevirir. Union DispApprovals grid ile birebir alan seti. */
-function mapDispOrderRow(r) {
+function mapDispOrderRow(r: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!r) return null
-  const dateStr = (v) => (v == null ? null : new Date(v).toISOString().slice(0, 10))
-  const dateTimeStr = (v) => (v == null ? null : new Date(v).toISOString().slice(0, 19).replace('T', ' '))
+  const dateStr = (v: unknown) => (v == null ? null : new Date(v as string | number).toISOString().slice(0, 10))
+  const dateTimeStr = (v: unknown) => (v == null ? null : new Date(v as string | number).toISOString().slice(0, 19).replace('T', ' '))
   return {
     dispOrderHeaderId: r.DispOrderHeaderId,
     dispOrderNo: r.DispOrderNumber ?? '',
@@ -23,7 +26,6 @@ function mapDispOrderRow(r) {
     waitReason: r.WaitReason ?? null,
     totalAmount: Number(r.TotalAmount) || 0,
     totalQty: Number(r.TotalQty) || 0,
-    // Union grid birebir ek alanlar
     type: r.Type ?? '',
     company: r.Company ?? '',
     sourceDispOrderHeaderId: r.SourceDispOrderHeaderId ?? null,
@@ -41,7 +43,7 @@ function mapDispOrderRow(r) {
   }
 }
 
-function register(router) {
+export function register(router: Router): void {
 
   router.get('/api/finance/statuses', wrapHandler(requireAuth(async (req, res) => {
     const pool = getPool()
@@ -50,7 +52,7 @@ function register(router) {
     const mode = (q.mode || 'filter').toLowerCase()
     const where = mode === 'select' ? 'WHERE IsSelect = 1' : 'WHERE IsFilter = 1'
     const result = await sqlPool.request().query(`SELECT StatusId, StatusName, IsFilter, IsSelect FROM dbo.DispOrderStatus WITH (NOLOCK) ${where} ORDER BY SortOrder`)
-    const statuses = (result.recordset || []).map(r => ({ id: r.StatusId, name: r.StatusName ?? '' }))
+    const statuses = ((result.recordset as Record<string, unknown>[]) || []).map(r => ({ id: r.StatusId, name: r.StatusName ?? '' }))
     sendOk(res, { statuses })
   })))
 
@@ -61,8 +63,8 @@ function register(router) {
     const company = (q.company || '').trim()
     const search = (q.search || '').trim().toLowerCase()
     if (!company) return sendOk(res, { customers: [] })
-    let customers = []
-    let lastError = null
+    let customers: { code: string; description: string }[] = []
+    let lastError: string | null = null
 
     try {
       const request = sqlPool.request()
@@ -77,16 +79,15 @@ function register(router) {
       }
       sqlText += ' ORDER BY CurrAccCode'
       const result = await request.query(sqlText)
-      customers = (result.recordset || []).map(r => ({
+      customers = ((result.recordset as Record<string, unknown>[]) || []).map(r => ({
         code: String(r.CurrAccCode ?? ''),
         description: String(r.CurrAccDescription ?? r.CurrAccCode ?? ''),
       }))
     } catch (err) {
-      lastError = err.message || String(err)
-      console.error('[finance/customers] ext.Customer hatası:', lastError)
+      lastError = (err as Error).message || String(err)
+      logger.error({ err: lastError, company }, 'finance/customers ext.Customer hatası')
     }
 
-    /* Fallback: DispOrderHeader'dan tekil müşteriler */
     if (customers.length === 0) {
       try {
         const req2 = sqlPool.request()
@@ -102,19 +103,18 @@ function register(router) {
         }
         fallbackSql += ' ORDER BY doh.CurrAccCode'
         const res2 = await req2.query(fallbackSql)
-        customers = (res2.recordset || []).map(r => ({
+        customers = ((res2.recordset as Record<string, unknown>[]) || []).map(r => ({
           code: String(r.CurrAccCode ?? ''),
           description: String(r.CurrAccDescription ?? r.CurrAccCode ?? ''),
         }))
       } catch (err2) {
-        console.error('[finance/customers] fallback hatası:', err2.message || err2)
+        logger.error({ err: (err2 as Error).message || err2, company }, 'finance/customers fallback hatası')
       }
     }
 
     sendOk(res, { customers, _error: lastError })
   })))
 
-  /* Sezon listesi: ext.Season – SeasonCode, SeasonDescription. Firma bazlı, isteğe bağlı arama. */
   router.get('/api/finance/seasons', wrapHandler(requireAuth(async (req, res) => {
     const pool = getPool()
     const sqlPool = await pool.getPool()
@@ -134,14 +134,14 @@ function register(router) {
     }
     sqlText += ' ORDER BY SeasonCode DESC'
     const result = await request.query(sqlText)
-    const seasons = (result.recordset || []).map(r => ({
+    const seasons = ((result.recordset as Record<string, unknown>[]) || []).map(r => ({
       code: String(r.code ?? ''),
       description: String(r.description ?? r.code ?? ''),
     }))
     sendOk(res, { seasons })
   })))
 
-  router.get('/api/finance/wait-reasons', wrapHandler(requireAuth(async (req, res) => {
+  router.get('/api/finance/wait-reasons', wrapHandler(requireAuth(async (_req, res) => {
     const reasons = [
       'Vadesi gelmemiş çeki var',
       'Bakiye fazla',
@@ -153,11 +153,10 @@ function register(router) {
     sendOk(res, { reasons })
   })))
 
-  /** Toplu DispOrderHeader Category/Season/Brand güncellemesi (set-based SP; scheduler veya manuel). Body: { maxRows?: number }. */
   router.post('/api/finance/update-disp-order-header-category-season', wrapHandler(requireAuth(async (req, res) => {
-    let body = {}
-    try { body = await readBody(req); if (typeof body === 'string') body = body ? JSON.parse(body) : {} } catch (_) {}
-    const maxRows = body.maxRows != null ? Math.max(0, parseInt(body.maxRows, 10)) : null
+    let body: Record<string, unknown> = {}
+    try { const raw = await readBody(req); body = typeof raw === 'string' ? (raw ? JSON.parse(raw) : {}) : {} } catch (_) {}
+    const maxRows = body.maxRows != null ? Math.max(0, parseInt(String(body.maxRows), 10)) : null
     const pool = getPool()
     const sqlPool = await pool.getPool()
     const request = sqlPool.request()
@@ -168,7 +167,6 @@ function register(router) {
     sendOk(res, { ok: true })
   })))
 
-  /** Cari bazında özet: Şirket, Müşteri Kodu, ... Sayfalama: page (1 tabanlı), pageSize (varsayılan 15). */
   router.get('/api/finance/cari-ozet', wrapHandler(requireAuth(async (req, res) => {
     const q = getQueryParams(req.url)
     const company = (q.company || '').trim()
@@ -266,7 +264,7 @@ function register(router) {
       OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
     `
     const result = await req2.query(sqlText)
-    const raw = result.recordset || []
+    const raw = (result.recordset as Record<string, unknown>[]) || []
     let totalCount = raw.length > 0 ? (raw[0]._totalCount ?? 0) : 0
     if (raw.length === 0) {
       const countSql = `
@@ -293,7 +291,7 @@ function register(router) {
       orderNos.forEach((v, i) => countReq.input('OrderNo' + i, sql.NVarChar(50), v))
       countReq.input('LimitAmount', sql.Float, limitAmount)
       const countResult = await countReq.query(countSql)
-      const countRow = (countResult.recordset || [])[0]
+      const countRow = (countResult.recordset as Record<string, unknown>[])?.[0]
       totalCount = countRow && countRow._totalCount != null ? Number(countRow._totalCount) : 0
     }
     const rows = raw.map(r => {
@@ -377,7 +375,6 @@ function register(router) {
     let seasonJoin = ''
     if (season) {
       request.input('Season', sql.NVarChar(50), season)
-      // Sezon seçiliyse: en az bir satırda bu sezon olan VEYA hiç satırı olmayan siparişleri göster (satırı olup sezonu farklı olanlar elenir)
       seasonJoin = `AND (
         EXISTS (SELECT 1 FROM dbo.DispOrderLine dol2 WITH (NOLOCK) WHERE dol2.DispOrderHeaderId = doh.DispOrderHeaderId AND dol2.ITAtt02 = @Season)
         OR NOT EXISTS (SELECT 1 FROM dbo.DispOrderLine dol2 WITH (NOLOCK) WHERE dol2.DispOrderHeaderId = doh.DispOrderHeaderId)
@@ -417,13 +414,12 @@ function register(router) {
        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY`
 
     const result = await request.query(querySql)
-    const rawRows = result.recordset || []
+    const rawRows = (result.recordset as Record<string, unknown>[]) || []
     const totalCount = rawRows.length > 0 ? (rawRows[0]._totalCount ?? 0) : 0
-    const rows = rawRows.map(mapDispOrderRow).filter(Boolean)
+    const rows = rawRows.map(r => mapDispOrderRow(r)).filter(Boolean) as Record<string, unknown>[]
     sendOk(res, { rows, totalCount })
   })))
 
-  /** Cari sevk özeti: onaylanmamış ve onaylanmış sevk emirleri için Adet, Miktar, Fatura Tutarı (filtre: company, customer, fromDate, toDate, season, statusIds). */
   router.get('/api/finance/cari-sevk-ozet', wrapHandler(requireAuth(async (req, res) => {
     const q = getQueryParams(req.url)
     const company = (q.company || '').trim()
@@ -484,12 +480,12 @@ function register(router) {
       WHERE ${where} ${seasonJoin}
     `
     const result = await req2.query(sqlText)
-    const r = (result.recordset || [])[0] || {}
-    const unapprovedCount = Math.max(0, parseInt(r.UnapprovedCount, 10) || 0)
-    const unapprovedQty = Math.max(0, parseInt(r.UnapprovedQty, 10) || 0)
+    const r = ((result.recordset as Record<string, unknown>[]) || [])[0] || {}
+    const unapprovedCount = Math.max(0, parseInt(String(r.UnapprovedCount), 10) || 0)
+    const unapprovedQty = Math.max(0, parseInt(String(r.UnapprovedQty), 10) || 0)
     const unapprovedAmount = Number(r.UnapprovedAmount) || 0
-    const approvedCount = Math.max(0, parseInt(r.ApprovedCount, 10) || 0)
-    const approvedQty = Math.max(0, parseInt(r.ApprovedQty, 10) || 0)
+    const approvedCount = Math.max(0, parseInt(String(r.ApprovedCount), 10) || 0)
+    const approvedQty = Math.max(0, parseInt(String(r.ApprovedQty), 10) || 0)
     const approvedAmount = Number(r.ApprovedAmount) || 0
     sendOk(res, {
       unapprovedCount,
@@ -501,7 +497,7 @@ function register(router) {
     })
   })))
 
-  router.get('/api/finance/disp-orders/:id/lines', wrapHandler(requireAuth(async (req, res, params) => {
+  router.get('/api/finance/disp-orders/:id/lines', wrapHandler(requireAuth(async (_req, res, params: Record<string, string>) => {
     const headerId = parseInt(params.id, 10)
     const pool = getPool()
     const sqlPool = await pool.getPool()
@@ -512,11 +508,11 @@ function register(router) {
                 FROM dbo.DispOrderLine dol WITH (NOLOCK)
                WHERE dol.DispOrderHeaderId = @HeaderId AND dol.Valid = 1
                ORDER BY dol.ItemCode, dol.ColorCode, dol.ItemDim1Code`)
-    const raw = result.recordset || []
+    const raw = (result.recordset as Record<string, unknown>[]) || []
     const lines = raw.map((row, i) => ({
       lineNo: i + 1,
       itemCode: row.ItemCode ?? '',
-      itemName: [row.ItemCode, row.ColorCode].filter(Boolean).join(' / ') || row.ItemCode || '',
+      itemName: [row.ItemCode, row.ColorCode].filter(Boolean).join(' / ') || (row.ItemCode ?? ''),
       qty: Number(row.Qty1) || 0,
       unitPrice: Number(row.ListPrice) || 0,
       lineTotal: Number(row.TotalAmount) || 0,
@@ -524,15 +520,13 @@ function register(router) {
     sendOk(res, { lines })
   })))
 
-  /** Seçilen carilere (company + currAccCode) ve filtreye göre sevk emri header ID'leri. Body: { company, currAccCodes: string[], fromDate?, toDate?, statusIds?, season?, contract? } */
   router.post('/api/finance/disp-orders/ids-by-cari', wrapHandler(requireAuth(async (req, res) => {
-    let body = {}
+    let body: Record<string, unknown> = {}
     try { body = JSON.parse(await readBody(req)) } catch { body = {} }
     const company = String(body.company ?? '').trim()
     const currAccCodes = Array.isArray(body.currAccCodes) ? body.currAccCodes.map(c => String(c ?? '').trim()).filter(Boolean) : []
     if (!company || currAccCodes.length === 0) return sendOk(res, { dispOrderHeaderIds: [] })
 
-    const customer = '' // toplu cari seçiminde tek müşteri filtresi yok
     const contract = String(body.contract ?? '').trim().toLowerCase()
     const statusIds = Array.isArray(body.statusIds) ? body.statusIds : (body.statusIds ? String(body.statusIds).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)) : [])
     const fromDate = String(body.fromDate ?? '').trim()
@@ -596,28 +590,29 @@ function register(router) {
        ORDER BY doh.DispOrderHeaderId
     `
     const result = await req2.query(sqlText)
-    const raw = result.recordset || []
-    const dispOrderHeaderIds = raw.map(r => r.DispOrderHeaderId).filter(id => id != null)
+    const raw = (result.recordset as Record<string, unknown>[]) || []
+    const dispOrderHeaderIds = raw.map(r => r.DispOrderHeaderId).filter(id => id != null) as number[]
     sendOk(res, { dispOrderHeaderIds })
   })))
 
   router.put('/api/finance/disp-orders/approve', wrapHandler(requireAuth(async (req, res) => {
-    const body = JSON.parse(await readBody(req))
+    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
     const updates = Array.isArray(body.updates) ? body.updates : []
     if (updates.length === 0) return sendError(res, 400, 'updates array gerekli.')
     const pool = getPool()
     const sqlPool = await pool.getPool()
+    const reqUser = (req as IncomingMessage & { user?: Record<string, unknown> }).user
     let updated = 0
-    for (const u of updates) {
-      const id = u.dispOrderHeaderId != null ? parseInt(u.dispOrderHeaderId, 10) : 0
-      const statusId = u.statusId != null ? parseInt(u.statusId, 10) : null
+    for (const u of updates as Record<string, unknown>[]) {
+      const id = u.dispOrderHeaderId != null ? parseInt(String(u.dispOrderHeaderId), 10) : 0
+      const statusId = u.statusId != null ? parseInt(String(u.statusId), 10) : null
       const waitReason = u.waitReason != null ? String(u.waitReason).trim() : null
       if (!id || statusId == null) continue
       const request = sqlPool.request()
       request.input('Id', sql.Int, id)
       request.input('StatusId', sql.Int, statusId)
       request.input('WaitReason', sql.NVarChar(512), waitReason)
-      request.input('UserId', sql.Int, req.user.userId)
+      request.input('UserId', sql.Int, reqUser?.userId ?? 0)
       await request.query(`
         UPDATE dbo.DispOrderHeader
            SET DispOrderStatusId = @StatusId,
@@ -632,7 +627,7 @@ function register(router) {
     sendOk(res, { updated })
   })))
 
-  const COMPANY_DB = {
+  const COMPANY_DB: Record<string, string> = {
     OLKA: 'OLKAV3',
     MARLIN: 'MARLINV3',
     JUPITER: 'JUPITERV3',
@@ -640,7 +635,7 @@ function register(router) {
     SATURN: 'SaturnV3',
   }
 
-  router.get('/api/finance/customer-summary/:code', wrapHandler(requireAuth(async (req, res, params) => {
+  router.get('/api/finance/customer-summary/:code', wrapHandler(requireAuth(async (req, res, params: Record<string, string>) => {
     const code = (params.code || '').trim()
     const q = getQueryParams(req.url)
     const company = (q.company || '').trim().toUpperCase()
@@ -652,17 +647,18 @@ function register(router) {
     const sqlPool = await pool.getPool()
 
     const execSql = `EXEC [${dbName}].dbo.usp_B2B_GetCurrAccBalanceInfo @CurrAccCode = @Code`
-    let row = null
+    let row: Record<string, unknown> | null = null
     const debug = (q.debug || '').toString().toLowerCase() === '1' || (q.debug || '').toString().toLowerCase() === 'true'
     try {
       const result = await sqlPool.request()
         .input('Code', sql.NVarChar(30), code)
         .query(execSql)
-      let rawRow = null
-      if (result.recordsets && result.recordsets.length > 0) {
-        for (const rs of result.recordsets) {
-          if (rs && rs.length > 0 && rs[0]) {
-            const r = rs[0]
+      let rawRow: Record<string, unknown> | null = null
+      const recordsets = result.recordsets as unknown[] | undefined
+      if (Array.isArray(recordsets) && recordsets.length > 0) {
+        for (const rs of recordsets) {
+          if (rs && Array.isArray(rs) && rs.length > 0 && rs[0]) {
+            const r = rs[0] as Record<string, unknown>
             if (Object.keys(r).length > 0 || Object.getOwnPropertyNames(r).some(p => p !== 'constructor')) {
               rawRow = r
               break
@@ -670,7 +666,7 @@ function register(router) {
           }
         }
       }
-      if (!rawRow) rawRow = result.recordset?.[0]
+      if (!rawRow) rawRow = (result.recordset as Record<string, unknown>[])?.[0]
       if (rawRow && typeof rawRow === 'object') {
         row = {}
         for (const k in rawRow) row[k] = rawRow[k]
@@ -684,16 +680,18 @@ function register(router) {
             row = JSON.parse(JSON.stringify(rawRow))
           } catch (_) {}
         }
-        const keys = Object.keys(row)
-        console.log('[finance/customer-summary] SP row keys for', code, ':', keys.join(', ') || '(empty)')
+        const keys = Object.keys(row as object)
+        logger.debug({ code, keys: keys.join(', ') || '(empty)' }, 'finance/customer-summary SP row keys')
       } else {
         row = rawRow
       }
       if (debug && row) {
-        console.log('[finance/customer-summary] SP row sample:', JSON.stringify(Object.fromEntries(Object.entries(row).slice(0, 10))))
+        const rowSafe = row as Record<string, unknown>
+        const entries = Object.keys(rowSafe).map(k => [k, rowSafe[k]] as [string, unknown])
+        logger.debug({ code, sample: Object.fromEntries(entries.slice(0, 10)) }, 'finance/customer-summary SP row sample')
       }
     } catch (err) {
-      console.error('[finance/customer-summary] usp_B2B_GetCurrAccBalanceInfo:', err.message || err)
+      logger.error({ code, err: (err as Error).message || err }, 'finance/customer-summary usp_B2B_GetCurrAccBalanceInfo hatası')
       const errPayload = {
         customerCode: code,
         customerName: '',
@@ -704,7 +702,7 @@ function register(router) {
         overdueAmount: 0,
         avgPaymentDays: 0,
       }
-      errPayload._error = err.message || String(err)
+      ;(errPayload as Record<string, unknown>)._error = (err as Error).message || String(err)
       return sendOk(res, errPayload)
     }
 
@@ -721,15 +719,15 @@ function register(router) {
       })
     }
 
-    const num = (v) => (v != null && v !== '' ? Number(v) : NaN)
-    const n = (v, def = 0) => { const x = num(v); return Number.isFinite(x) ? x : def }
-    const norm = (s) => String(s).trim().toLowerCase().replace(/\s+/g, ' ')
-    const keyMap = {}
+    const num = (v: unknown) => (v != null && v !== '' ? Number(v) : NaN)
+    const n = (v: unknown, def = 0) => { const x = num(v); return Number.isFinite(x) ? x : def }
+    const norm = (s: string) => String(s).trim().toLowerCase().replace(/\s+/g, ' ')
+    const keyMap: Record<string, string> = {}
     const rowKeys = row && typeof row === 'object' ? Object.keys(row) : []
     for (const key of rowKeys) {
       keyMap[norm(key)] = key
     }
-    const get = (r, ...keys) => {
+    const get = (r: Record<string, unknown>, ...keys: string[]) => {
       for (const k of keys) {
         let v = r[k]
         if (v != null && v !== '') return v
@@ -739,7 +737,7 @@ function register(router) {
       }
       return undefined
     }
-    const getByPartial = (r, ...termGroups) => {
+    const getByPartial = (r: Record<string, unknown>, ...termGroups: (string | string[])[]): unknown => {
       for (const terms of termGroups) {
         const t = (Array.isArray(terms) ? terms : [terms]).map(x => norm(String(x)))
         for (const key of rowKeys) {
@@ -770,12 +768,12 @@ function register(router) {
           SELECT TOP 1 CurrAccDescription FROM [${db}].ext.Customer WITH (NOLOCK)
           WHERE Company = @Company AND CurrAccCode = @CurrAccCode
         `)
-        const nameRow = (nameRes.recordset || [])[0]
+        const nameRow = (nameRes.recordset as Record<string, unknown>[])?.[0]
         if (nameRow && (nameRow.CurrAccDescription != null && nameRow.CurrAccDescription !== '')) {
           customerName = String(nameRow.CurrAccDescription).trim()
         }
       } catch (e) {
-        console.error('[finance/customer-summary] ext.Customer name lookup:', e.message || e)
+        logger.error({ code, err: (e as Error).message || e }, 'finance/customer-summary ext.Customer name lookup hatası')
       }
     }
 
@@ -783,14 +781,14 @@ function register(router) {
     const workingMethod = String(get(row, 'Calisma Yontemi', 'CalismaYontemi', 'WorkingMethod') ?? getByPartial(row, ['calisma', 'yontemi']) ?? '').trim()
     const workingMethodCode = String(get(row, 'Calisma Yontemi Kodu', 'CalismaYontemiKodu') ?? getByPartial(row, ['calisma', 'yontemi', 'kodu']) ?? '').trim()
     const letterOfGuaranteeEarliestDue = get(row, 'Teminat Mektubu En Erken Vade', 'TeminatMektubuEnErkenVade') ?? getByPartial(row, ['teminat', 'erken', 'vade'])
-    const dateStr = (v) => (v == null || v === '' ? null : new Date(v).toISOString().slice(0, 10))
+    const dateStr = (v: unknown) => (v == null || v === '' ? null : new Date(v as string | number).toISOString().slice(0, 10))
     const teminatMektubuTutari = n(get(row, 'Teminat Mektubu Tutari', 'TeminatMektubuTutari', 'TeminatDBS') ?? getByPartial(row, ['teminat', 'mektubu', 'tutari'], ['teminatdbs']))
     const alinanCekAktifSezon = n(get(row, 'AlinanCek Toplami Aktif Sezon', 'AlinanCekToplamiAktifSezon') ?? getByPartial(row, ['alinan', 'cek', 'aktif']))
     const alinanCekEskiezon = n(get(row, 'AlinanCek Toplami Eskiezon', 'AlinanCekToplamiEskiezon') ?? getByPartial(row, ['alinan', 'cek', 'eskiezon']))
     const sevkiyatTemin = n(get(row, 'Sevkiyat Temin', 'Sevkiyat Teminat Yuzdesi', 'SevkiyatTemin') ?? getByPartial(row, ['sevkiyat', 'teminat']))
     const kalanSiparisBakiyesi = n(get(row, 'Kalan Siparis Bakiyesi', 'KalanSiparisBakiyesi') ?? getByPartial(row, ['kalan', 'siparis']))
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       customerCode: code,
       customerName,
       creditLimit,
@@ -808,9 +806,7 @@ function register(router) {
       sevkiyatTemin,
       kalanSiparisBakiyesi,
     }
-    if (debug) payload._debug = { rowKeys: rowKeys, keyMap: keyMap }
+    if (debug) (payload as Record<string, unknown>)._debug = { rowKeys, keyMap }
     sendOk(res, payload)
   })))
 }
-
-module.exports = { register }

@@ -9,7 +9,7 @@ GO
 
 -- ==================== SyncDispOrderFromErp ====================
 -- Mevcut dbo.DispOrderHeader ve dbo.DispOrderLine kayıtlarını ext view'lardan günceller.
--- InsertDispOrders/BackfillDispOrderFromDraft ile açılan kayıtlar minimal; bu SP tüm alanları ERP ile eşitler.
+-- InsertDispOrders ile açılan kayıtlar minimal; bu SP tüm alanları ERP ile eşitler.
 -- Örnek: EXEC dbo.SyncDispOrderFromErp;  veya EXEC dbo.SyncDispOrderFromErp @Company = N'OLKA';
 CREATE OR ALTER PROCEDURE dbo.SyncDispOrderFromErp
     @Company NVARCHAR(10) = NULL   -- NULL = tüm şirketler; dolu = sadece bu şirket

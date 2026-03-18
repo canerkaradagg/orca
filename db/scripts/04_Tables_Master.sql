@@ -309,21 +309,5 @@ IF OBJECT_ID(N'dbo.extChannelTemplateCustomer', N'U') IS NOT NULL DROP TABLE dbo
 IF OBJECT_ID(N'dbo.extChannelTemplate', N'U') IS NOT NULL DROP TABLE dbo.extChannelTemplate;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'prItemBarcode' AND schema_id = SCHEMA_ID('dbo'))
-CREATE TABLE dbo.prItemBarcode (
-    Company           NVARCHAR(10)    NOT NULL,
-    Barcode           NVARCHAR(30)    NOT NULL,
-    BarcodeTypeCode   NVARCHAR(10)    NULL,
-    ItemTypeCode      NVARCHAR(5)     NULL,
-    ItemCode          NVARCHAR(30)    NULL,
-    ColorCode         NVARCHAR(10)    NULL,
-    ItemDim1Code      NVARCHAR(10)    NULL,
-    ItemDim2Code      NVARCHAR(10)    NULL,
-    UnitOfMeasureCode NVARCHAR(10)    NULL,
-    Qty               DECIMAL(18,2)   NULL,
-    CONSTRAINT PK_prItemBarcode PRIMARY KEY (Company, Barcode)
-);
-GO
-
 PRINT 'OrcaAlokasyon – Master tabloları oluşturuldu.';
 GO

@@ -1,7 +1,7 @@
 const path = require('path')
 const root = path.join(__dirname, '../..')
 require('dotenv').config({ path: path.join(root, '.env') })
-const { getPool } = require('./connection-pool.cjs')
+const { getPool } = require('../../dist/scripts/db/connection-pool')
 
 async function main() {
   const pool = await getPool().getPool()

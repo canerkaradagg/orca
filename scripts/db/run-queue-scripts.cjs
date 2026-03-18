@@ -9,7 +9,7 @@ const fs = require('fs')
 const root = path.join(__dirname, '../..')
 require('dotenv').config({ path: path.join(root, '.env') })
 
-const { getPool } = require('./connection-pool.cjs')
+const { getPool } = require('../../dist/scripts/db/connection-pool')
 
 const SCRIPTS_DIR = path.join(root, 'db', 'scripts')
 const TO_RUN = ['11_Tables_Queue.sql', '11c_Table_Priority.sql', '11b_Table_ProcessCodes.sql', '12a_View_DraftOrder.sql', '12b_View_OrderAsnModel.sql', '13_CreateQueueForAllocation.sql', '14_CreateQueueForASN.sql', '15_QueueProcess.sql', '15a_InsertOrdersReservationsDispOrders.sql', '15c_SetDispOrderLock_CancelReceivedOrder.sql', '15d_MissionAccomplished_Helpers.sql', '15b_MissionAccomplished.sql']

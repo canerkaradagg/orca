@@ -2,7 +2,7 @@ const path = require('path')
 const fs = require('fs')
 const root = path.join(__dirname, '../..')
 require('dotenv').config({ path: path.join(root, '.env') })
-const { getPool } = require('./connection-pool.cjs')
+const { getPool } = require('../../dist/scripts/db/connection-pool')
 const content = fs.readFileSync(path.join(root, 'db/scripts/12b_View_OrderAsnModel.sql'), 'utf8')
 const batches = content.split(/\s*GO\s*/i).map((b) => b.trim()).filter((b) => b.length > 0 && !b.startsWith('USE '))
 

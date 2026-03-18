@@ -17,8 +17,8 @@
 
 const fs = require('fs')
 const path = require('path')
-const { getPool } = require('./db/connection-pool.cjs')
-const { getReportEmail, runMaintenanceReport, sendReportByEmail } = require('./shared/maintenance-report.cjs')
+const { getPool } = require('../dist/scripts/db/connection-pool')
+const { getReportEmail, runMaintenanceReport, sendReportByEmail } = require('../dist/scripts/shared/maintenance-report')
 
 const LOG_DIR = path.join(process.cwd(), 'logs')
 

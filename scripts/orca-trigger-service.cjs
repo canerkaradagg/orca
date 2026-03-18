@@ -5,6 +5,7 @@
  *
  * Kullanım: node scripts/orca-trigger-service.cjs
  * Ortam: ORCA_API_BASE (örn. http://localhost:3001) – varsayılan http://localhost:3001
+ * Ortam: INTERNAL_SERVICE_API_KEY – API'de tanımlı olmalı; bu key ile queue/maintenance/parameters erişilir.
  *
  * Parametreler (çalışma sıklığı vb.) API'den GET /api/parameters ile okunur.
  */
@@ -17,6 +18,13 @@
 })()
 
 const API_BASE = (process.env.ORCA_API_BASE || 'http://localhost:3001').replace(/\/$/, '')
+const INTERNAL_KEY = process.env.INTERNAL_SERVICE_API_KEY || ''
+
+function getAuthHeaders() {
+  const h = { 'Content-Type': 'application/json' }
+  if (INTERNAL_KEY) h['X-Internal-API-Key'] = INTERNAL_KEY
+  return h
+}
 
 function log(msg) {
   const ts = new Date().toISOString()
@@ -30,7 +38,7 @@ function parseMinutes(paramValue, defaultMinutes) {
 }
 
 async function fetchJson(url, options = {}) {
-  const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } })
+  const res = await fetch(url, { ...options, headers: { ...getAuthHeaders(), ...options.headers } })
   const text = await res.text()
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`)
   try {

@@ -1,6 +1,6 @@
 require('dotenv').config()
 const sql = require('mssql')
-const { getPool } = require('./connection-pool.cjs')
+const { getPool } = require('../../dist/scripts/db/connection-pool')
 
 async function main() {
   const pool = await getPool().getPool()

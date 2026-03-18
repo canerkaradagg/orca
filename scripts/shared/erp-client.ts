@@ -2,23 +2,22 @@
  * Ortak ERP client modülü – db-api-handler ve test-onayla-step1 tarafından kullanılır.
  */
 
-const http = require('http')
-const https = require('https')
-const { getPool } = require('../db/connection-pool.cjs')
-const sql = require('mssql')
+import logger from '../lib/logger'
+import http from 'http'
+import https from 'https'
+import { getPool } from '../db/connection-pool'
+import sql from 'mssql'
 
-// ERP_BASE'i runtime'da oku: dotenv ne zaman yüklenirse yüklensin doğru değeri alsın
-function getErpBase() {
+function getErpBase(): string {
   const url = process.env.ERP_INTEGRATOR_URL
   if (!url) {
-    console.warn('[erp-client] ERP_INTEGRATOR_URL tanımlı değil – .env dosyasını kontrol edin.')
+    logger.warn('ERP_INTEGRATOR_URL tanımlı değil – .env dosyasını kontrol edin.')
     return ''
   }
   return url.replace(/\/$/, '')
 }
 
-// ERP Connect şifresi env'den; .env'de ERP_INTEGRATOR_PASSWORD tanımlayın
-function getErpConnectBody() {
+function getErpConnectBody(): string {
   return JSON.stringify({
     ModelType: 1,
     DatabaseName: process.env.ERP_INTEGRATOR_DATABASE || 'OLKAV3',
@@ -29,11 +28,11 @@ function getErpConnectBody() {
   })
 }
 
-const ERP_TOKEN_CACHE = { token: null, expiresAt: 0 }
-const ERP_TOKEN_TTL_MS = 55 * 60 * 1000 // 55 dakika
+const ERP_TOKEN_CACHE: { token: string | null; expiresAt: number } = { token: null, expiresAt: 0 }
+const ERP_TOKEN_TTL_MS = 55 * 60 * 1000
 
-function erpPost(pathSuffix, body, timeoutMs = 60000) {
-  const requestPromise = new Promise((resolve, reject) => {
+function erpPost(pathSuffix: string, body: string, timeoutMs = 60000): Promise<string> {
+  const requestPromise = new Promise<string>((resolve, reject) => {
     const fullUrl = getErpBase() + pathSuffix
     const parsed = new URL(fullUrl)
     const isHttps = parsed.protocol === 'https:'
@@ -46,11 +45,11 @@ function erpPost(pathSuffix, body, timeoutMs = 60000) {
       headers: { 'Content-Type': 'application/json' },
     }
     const req = client.request(options, (res) => {
-      const chunks = []
-      res.on('data', (chunk) => chunks.push(chunk))
+      const chunks: Buffer[] = []
+      res.on('data', (chunk: Buffer) => chunks.push(chunk))
       res.on('end', () => {
         const data = Buffer.concat(chunks).toString()
-        if (res.statusCode >= 400) {
+        if (res.statusCode && res.statusCode >= 400) {
           reject(new Error(`ERP ${res.statusCode}: ${data}`))
           return
         }
@@ -65,20 +64,19 @@ function erpPost(pathSuffix, body, timeoutMs = 60000) {
     })
     req.end(body)
   })
-  // Garantili üst sınır: soket zaman aşımı tetiklenmese bile süreden sonra hata verir
-  const timeoutPromise = new Promise((_, reject) =>
+  const timeoutPromise = new Promise<string>((_, reject) =>
     setTimeout(() => reject(new Error('ERP istek zaman aşımı')), timeoutMs + 5000)
   )
   return Promise.race([requestPromise, timeoutPromise])
 }
 
-async function getErpToken() {
+export async function getErpToken(): Promise<string> {
   const now = Date.now()
   if (ERP_TOKEN_CACHE.token && ERP_TOKEN_CACHE.expiresAt > now) {
     return ERP_TOKEN_CACHE.token
   }
   const data = await erpPost('/IntegratorService/connect', getErpConnectBody())
-  const json = JSON.parse(data)
+  const json = JSON.parse(data) as { Token?: string }
   const token = json.Token
   if (!token) throw new Error('ERP Connect: Token alınamadı')
   ERP_TOKEN_CACHE.token = token
@@ -86,11 +84,13 @@ async function getErpToken() {
   return token
 }
 
-/**
- * Açık sipariş verisini ext.OrderLine + ext.OrderHeader'dan okur (Union uyumlu; SP yok).
- * CurrAccTypeCode=1, ProcessCode IN ('IP','BP'), OrderTypeCode=3, CompanyCode=1 sabit filtre.
- */
-async function getVendorOrdersFromAllocation(company, vendorCode, poNumber, warehouseCode, importFileNumber = '') {
+export async function getVendorOrdersFromAllocation(
+  company: string,
+  vendorCode: string,
+  poNumber: string,
+  warehouseCode: string,
+  importFileNumber = ''
+): Promise<Record<string, unknown>[]> {
   const pool = await getPool().getPool()
   const req = pool.request()
   req.input('Company', sql.NVarChar(10), (company ?? '').trim())
@@ -129,10 +129,10 @@ async function getVendorOrdersFromAllocation(company, vendorCode, poNumber, ware
   `
   const result = await req.query(sqlText)
   const rows = result.recordset || []
-  return rows.map((r) => ({ ...r, _poNumber: poNumber, ITAtt01: r.ITAtt01 ?? poNumber }))
+  return rows.map((r: Record<string, unknown>) => ({ ...r, _poNumber: poNumber, ITAtt01: r.ITAtt01 ?? poNumber }))
 }
 
-function getRunProcQty1(row) {
+export function getRunProcQty1(row: Record<string, unknown>): number {
   const raw = row.Qty1 != null ? row.Qty1 : row.qty1
   if (raw == null) return 0
   if (typeof raw === 'number' && !Number.isNaN(raw)) return raw
@@ -140,7 +140,7 @@ function getRunProcQty1(row) {
   return Number.isNaN(n) ? 0 : n
 }
 
-function getRowQuantity(r) {
+export function getRowQuantity(r: Record<string, unknown>): number {
   const raw = r.quantity != null ? r.quantity : r.Quantity
   if (raw == null) return 0
   if (typeof raw === 'number' && !Number.isNaN(raw)) return raw
@@ -148,14 +148,17 @@ function getRowQuantity(r) {
   return Number.isNaN(n) ? 0 : n
 }
 
-/** reservedByDrafts: { [barcode|po]: number } - diğer taslakların talep ettiği miktar. Opsiyonel. */
-function checkRunProcSufficiency(runProcRows, rows, reservedByDrafts) {
+export function checkRunProcSufficiency(
+  runProcRows: Record<string, unknown>[],
+  rows: Record<string, unknown>[],
+  reservedByDrafts?: Record<string, number>
+): string[] {
   const reserved = reservedByDrafts || {}
-  const key = (b, po) => (b || '') + '|' + (po != null ? String(po).trim() : '')
-  const getPo = (r) =>
-    (r.poNumber != null ? String(r.poNumber) : r.poNo != null ? String(r.poNo) : r['PO Number'] != null ? String(r['PO Number']) : '').trim()
-  const getBarcode = (r) => (r.barcode != null ? String(r.barcode) : r.Barcode != null ? String(r.Barcode) : '').trim()
-  const needed = {}
+  const key = (b: string, po: string | null) => (b || '') + '|' + (po != null ? String(po).trim() : '')
+  const getPo = (r: Record<string, unknown>) =>
+    (r.poNumber != null ? String(r.poNumber) : r.poNo != null ? String(r.poNo) : (r['PO Number'] != null ? String(r['PO Number']) : '')).trim()
+  const getBarcode = (r: Record<string, unknown>) => (r.barcode != null ? String(r.barcode) : r.Barcode != null ? String(r.Barcode) : '').trim()
+  const needed: Record<string, number> = {}
   for (const r of rows) {
     const b = getBarcode(r)
     if (!b) continue
@@ -164,17 +167,17 @@ function checkRunProcSufficiency(runProcRows, rows, reservedByDrafts) {
     const q = getRowQuantity(r)
     needed[k] = (needed[k] || 0) + q
   }
-  const available = {}
+  const available: Record<string, number> = {}
   for (const row of runProcRows) {
-    const b = (row._barcode || (row.UsedBarcode != null ? String(row.UsedBarcode) : row.Barcode != null ? String(row.Barcode) : '')).trim()
+    const b = (row._barcode ?? (row.UsedBarcode != null ? String(row.UsedBarcode) : row.Barcode != null ? String(row.Barcode) : '')).toString().trim()
     if (!b) continue
-    const po = (row._poNumber || (row.ITAtt01 != null ? String(row.ITAtt01) : '')).trim()
+    const po = (row._poNumber ?? (row.ITAtt01 != null ? String(row.ITAtt01) : '')).toString().trim()
     const k = key(b, po)
     const q = getRunProcQty1(row)
     available[k] = (available[k] || 0) + q
   }
-  const insufficientBarcodes = []
-  const seen = new Set()
+  const insufficientBarcodes: string[] = []
+  const seen = new Set<string>()
   for (const [k, need] of Object.entries(needed)) {
     const avail = available[k] || 0
     const reservedQty = reserved[k] || 0
@@ -190,17 +193,21 @@ function checkRunProcSufficiency(runProcRows, rows, reservedByDrafts) {
   return insufficientBarcodes
 }
 
-/** reservedByDrafts: { [barcode|po]: number }. draftBreakdown: { [barcode|po]: [{ inboundId, quantity }] }. openOrderQty = ERP - reserved. */
-function getInsufficientBarcodesDetail(runProcRows, rows, reservedByDrafts, draftBreakdown) {
+export function getInsufficientBarcodesDetail(
+  runProcRows: Record<string, unknown>[],
+  rows: Record<string, unknown>[],
+  reservedByDrafts?: Record<string, number>,
+  draftBreakdown?: Record<string, { inboundId: number; quantity: number }[]>
+): Array<{ eanBarcode: string; poNumber: string; openOrderQty: number; loadedQty: number; missingQty: number; erpOrders: { orderNumber: string; quantity: number }[]; draftReservations: { inboundId: number; quantity: number }[] }> {
   const reserved = reservedByDrafts || {}
   const breakdown = draftBreakdown || {}
-  const key = (b, po) => (b || '') + '|' + (po != null ? String(po).trim() : '')
-  const getPo = (r) =>
-    (r.poNumber != null ? String(r.poNumber) : r.poNo != null ? String(r.poNo) : r['PO Number'] != null ? String(r['PO Number']) : '').trim()
-  const getBarcode = (r) => (r.barcode != null ? String(r.barcode) : r.Barcode != null ? String(r.Barcode) : '').trim()
-  const getErpPo = (row) => (row._poNumber || (row.ITAtt01 != null ? String(row.ITAtt01) : '')).trim()
-  const getErpBarcode = (row) => (row._barcode || (row.UsedBarcode != null ? String(row.UsedBarcode) : row.Barcode != null ? String(row.Barcode) : '')).trim()
-  const needed = {}
+  const key = (b: string, po: string | null) => (b || '') + '|' + (po != null ? String(po).trim() : '')
+  const getPo = (r: Record<string, unknown>) =>
+    (r.poNumber != null ? String(r.poNumber) : r.poNo != null ? String(r.poNo) : (r['PO Number'] != null ? String(r['PO Number']) : '')).trim()
+  const getBarcode = (r: Record<string, unknown>) => (r.barcode != null ? String(r.barcode) : r.Barcode != null ? String(r.Barcode) : '').trim()
+  const getErpPo = (row: Record<string, unknown>) => (row._poNumber ?? (row.ITAtt01 != null ? String(row.ITAtt01) : '')).toString().trim()
+  const getErpBarcode = (row: Record<string, unknown>) => (row._barcode ?? (row.UsedBarcode != null ? String(row.UsedBarcode) : row.Barcode != null ? String(row.Barcode) : '')).toString().trim()
+  const needed: Record<string, number> = {}
   for (const r of rows) {
     const b = getBarcode(r)
     if (!b) continue
@@ -209,7 +216,7 @@ function getInsufficientBarcodesDetail(runProcRows, rows, reservedByDrafts, draf
     const q = getRowQuantity(r)
     needed[k] = (needed[k] || 0) + q
   }
-  const available = {}
+  const available: Record<string, number> = {}
   for (const row of runProcRows) {
     const b = getErpBarcode(row)
     if (!b) continue
@@ -218,7 +225,7 @@ function getInsufficientBarcodesDetail(runProcRows, rows, reservedByDrafts, draf
     const q = getRunProcQty1(row)
     available[k] = (available[k] || 0) + q
   }
-  const detail = []
+  const detail: Array<{ eanBarcode: string; poNumber: string; openOrderQty: number; loadedQty: number; missingQty: number; erpOrders: { orderNumber: string; quantity: number }[]; draftReservations: { inboundId: number; quantity: number }[] }> = []
   for (const [k, need] of Object.entries(needed)) {
     const avail = available[k] || 0
     const reservedQty = reserved[k] || 0
@@ -233,7 +240,6 @@ function getInsufficientBarcodesDetail(runProcRows, rows, reservedByDrafts, draf
         }))
       const draftReservations = breakdown[k] || []
       const draftTotal = draftReservations.reduce((s, d) => s + (d.quantity || 0), 0)
-      // Eksik = (Yüklenen + Taslak rezervasyon toplamı) - Net kullanılabilir
       const missingQty = Math.max(0, (need + draftTotal) - netAvailable)
       detail.push({
         eanBarcode: barcode || '',
@@ -249,7 +255,7 @@ function getInsufficientBarcodesDetail(runProcRows, rows, reservedByDrafts, draf
   return detail
 }
 
-function formatOrderAsnDate(value) {
+export function formatOrderAsnDate(value: unknown): string {
   if (value == null || value === '') {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -265,10 +271,15 @@ function formatOrderAsnDate(value) {
   return s
 }
 
-function buildPostBodyModel95(runProcRows, rows, processCode, warehouseCode) {
+export function buildPostBodyModel95(
+  runProcRows: Record<string, unknown>[],
+  rows: Record<string, unknown>[],
+  processCode: string,
+  warehouseCode: string
+): Record<string, unknown> {
   if (runProcRows.length === 0) throw new Error('RunProc cevabı boş')
   const first = runProcRows[0]
-  let modelTypeFromProcess = null
+  let modelTypeFromProcess: number | null = null
   if (processCode) {
     const pc = String(processCode).trim().toUpperCase()
     if (pc === 'BP') modelTypeFromProcess = 95
@@ -281,7 +292,7 @@ function buildPostBodyModel95(runProcRows, rows, processCode, warehouseCode) {
         : parseInt(String(first.ModelType), 10)
       : 97
   const modelType = modelTypeFromProcess != null ? modelTypeFromProcess : baseModelType
-  const header = {
+  const header: Record<string, unknown> = {
     ModelType: Number.isFinite(modelType) ? modelType : 97,
     Description: first.Description != null ? String(first.Description) : '',
     VendorCode: first.VendorCode != null ? String(first.VendorCode) : '',
@@ -294,7 +305,7 @@ function buildPostBodyModel95(runProcRows, rows, processCode, warehouseCode) {
     WarehouseCode: warehouseCode || (first.WarehouseCode != null ? String(first.WarehouseCode) : ''),
     Lines: [],
   }
-  const byBarcode = {}
+  const byBarcode: Record<string, Array<{ orderlineId: string; qty1: number }>> = {}
   for (const row of runProcRows) {
     const b = (row.UsedBarcode != null ? String(row.UsedBarcode) : row.Barcode != null ? String(row.Barcode) : '').trim()
     if (!b) continue
@@ -303,8 +314,7 @@ function buildPostBodyModel95(runProcRows, rows, processCode, warehouseCode) {
     const qty1 = getRunProcQty1(row)
     byBarcode[b].push({ orderlineId, qty1 })
   }
-  const lines = []
-  const getPo = (r) => (r.poNumber != null ? String(r.poNumber) : r.poNo != null ? String(r.poNo) : '').trim()
+  const lines: Array<{ OrderLineId: string; Qty1: number; PickingNumber: string }> = []
   for (const r of rows) {
     const barcode = (r.barcode != null ? String(r.barcode) : r.Barcode != null ? String(r.Barcode) : '').trim()
     if (!barcode) continue
@@ -328,26 +338,27 @@ function buildPostBodyModel95(runProcRows, rows, processCode, warehouseCode) {
   return header
 }
 
-async function runProc(token, body) {
+export async function runProc(token: string, body: Record<string, unknown> | string): Promise<Record<string, unknown>[]> {
   const data = await erpPost(
     '/IntegratorService/RunProc/' + encodeURIComponent(token),
     typeof body === 'string' ? body : JSON.stringify(body)
   )
-  const parsed = JSON.parse(data)
+  const parsed = JSON.parse(data) as Record<string, unknown> | Record<string, unknown>[]
   if (Array.isArray(parsed)) return parsed
-  if (parsed && Array.isArray(parsed.rows)) return parsed.rows
-  if (parsed && parsed.StatusCode >= 400) throw new Error(parsed.Status || parsed.Message || data)
+  const p = parsed as Record<string, unknown>
+  if (p && Array.isArray(p.rows)) return p.rows
+  if (p && Number(p.StatusCode) >= 400) throw new Error(String(p.Status || p.Message || data))
   throw new Error('RunProc beklenmeyen cevap: ' + data)
 }
 
-async function postAsn(token, body) {
+export async function postAsn(token: string, body: Record<string, unknown> | string): Promise<string> {
   const bodyStr = typeof body === 'string' ? body : JSON.stringify(body)
   const data = await erpPost(
     '/IntegratorService/Post/' + encodeURIComponent(token),
     bodyStr
   )
-  const json = JSON.parse(data)
-  if (json.StatusCode != null && parseInt(json.StatusCode, 10) >= 400) {
+  const json = JSON.parse(data) as Record<string, unknown>
+  if (json.StatusCode != null && parseInt(String(json.StatusCode), 10) >= 400) {
     throw new Error(
       'ERP Post: ' +
         (json.Status ||
@@ -359,7 +370,7 @@ async function postAsn(token, body) {
     )
   }
   if (json.ok === false && json.error) {
-    throw new Error('ERP Post: ' + json.error)
+    throw new Error('ERP Post: ' + String(json.error))
   }
   const asnNo =
     json.OrderAsnNumber ??
@@ -375,16 +386,4 @@ async function postAsn(token, body) {
   return String(asnNo)
 }
 
-module.exports = {
-  erpPost,
-  getErpToken,
-  getVendorOrdersFromAllocation,
-  getRunProcQty1,
-  getRowQuantity,
-  checkRunProcSufficiency,
-  getInsufficientBarcodesDetail,
-  formatOrderAsnDate,
-  buildPostBodyModel95,
-  runProc,
-  postAsn,
-}
+export { erpPost }

@@ -1,9 +1,10 @@
-const { getPool } = require('../../db/connection-pool.cjs')
-const sql = require('mssql')
-const { getQueryParams, sendOk, sendError, wrapHandler } = require('../middleware.cjs')
-const { requireAuth } = require('../auth-middleware.cjs')
+import { getPool } from '../../db/connection-pool'
+import sql from 'mssql'
+import { getQueryParams, sendOk, sendError, wrapHandler } from '../middleware'
+import { requireAuth } from '../auth-middleware'
+import type { Router } from '../router'
 
-function register(router) {
+export function register(router: Router): void {
 
   router.get('/api/reports/disp-order-process', wrapHandler(requireAuth(async (req, res) => {
     const pool = getPool()
@@ -86,9 +87,7 @@ function register(router) {
        ORDER BY doh.DispOrderDate DESC
        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
     `)
-    const rows = result.recordset || []
+    const rows = (result.recordset as Record<string, unknown>[]) || []
     sendOk(res, { rows, totalCount: rows.length > 0 ? (rows[0]._totalCount ?? 0) : 0 })
   })))
 }
-
-module.exports = { register }

@@ -43,9 +43,5 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Request_StatusId' AND 
     CREATE INDEX IX_Request_StatusId ON dbo.Request (StatusId);
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_prItemBarcode_Company_Barcode' AND object_id = OBJECT_ID('dbo.prItemBarcode'))
-    CREATE INDEX IX_prItemBarcode_Company_Barcode ON dbo.prItemBarcode (Company, Barcode) INCLUDE (ItemCode, ColorCode, ItemDim1Code, ItemDim2Code);
-GO
-
 PRINT 'OrcaAlokasyon – İndeksler oluşturuldu.';
 GO

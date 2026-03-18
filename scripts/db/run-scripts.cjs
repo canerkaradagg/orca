@@ -13,7 +13,7 @@ if (!process.env.DB_SERVER && !process.env.DB_NAME) {
   try { require('dotenv').config({ path: path.join(root, '.env.example') }) } catch {}
 }
 
-const { getPool } = require('./connection-pool.cjs')
+const { getPool } = require('../../dist/scripts/db/connection-pool')
 
 const SCRIPTS_DIR = path.join(root, 'db', 'scripts')
 

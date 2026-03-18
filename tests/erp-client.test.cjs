@@ -6,7 +6,7 @@ const {
   getRowQuantity,
   checkRunProcSufficiency,
   formatOrderAsnDate,
-} = require('../scripts/shared/erp-client.cjs')
+} = require('../dist/scripts/shared/erp-client')
 
 describe('getRunProcQty1', () => {
   it('returns number from Qty1', () => {

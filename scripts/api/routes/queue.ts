@@ -1,29 +1,34 @@
-const { getPool } = require('../../db/connection-pool.cjs')
-const sql = require('mssql')
-const { sendOk, sendError, wrapHandler } = require('../middleware.cjs')
-const { getErpToken, erpPost } = require('../../shared/erp-client.cjs')
-const { updateDraftFromQueueSuccess } = require('../helpers.cjs')
+import { getPool } from '../../db/connection-pool'
+import sql from 'mssql'
+import { sendOk, sendError, wrapHandler } from '../middleware'
+import { getErpToken, erpPost } from '../../shared/erp-client'
+import { requireAuthOrInternalKey } from '../auth-middleware'
+import logger from '../../lib/logger'
+import { updateDraftFromQueueSuccess } from '../helpers'
+import type { Router } from '../router'
 
 /** Tek kuyruk satırını post eder; log/success/failure ve ASN/Draft işlemlerini yapar. */
-async function processOneRow(row, sqlPool, postPath) {
-  const queueId = row.QueueId
+async function processOneRow(row: Record<string, unknown>, sqlPool: sql.ConnectionPool, postPath: string): Promise<{ queueId: number; success: boolean; error?: string }> {
+  const queueId = row.QueueId as number
   const jsonData = row.JsonData != null ? String(row.JsonData) : ''
   const startDate = new Date()
   const insLogReq = sqlPool.request()
   insLogReq.input('QueueId', sql.Int, queueId)
   insLogReq.output('QueueLogId', sql.Int)
   const insLogResult = await insLogReq.execute('dbo.InsertQueueLog')
-  const queueLogId = insLogResult.output?.QueueLogId ?? insLogResult.recordset?.[0]?.QueueLogId
+  const queueLogId = (insLogResult.output as Record<string, unknown>)?.QueueLogId ?? (insLogResult.recordset as Record<string, unknown>[])?.[0]?.QueueLogId
   if (!queueLogId) return { queueId, success: false, error: 'QueueLog insert hatası' }
 
-  let success = false, responseText = '', errMsg = ''
+  let success = false
+  let responseText = ''
+  let errMsg = ''
   try {
     responseText = await erpPost(postPath, jsonData)
-    const parsed = JSON.parse(responseText)
+    const parsed = JSON.parse(responseText) as Record<string, unknown>
     const ok = parsed?.Success === true || parsed?.success === true || parsed?.IsSuccess === true || parsed?.isSuccess === true || parsed?.Success === 1 || parsed?.success === 1
     const noError = (parsed?.StatusCode == null || Number(parsed?.StatusCode) < 400) && !parsed?.ExceptionMessage
     success = ok || (noError && (parsed?.HeaderID != null || parsed?.ApplicationID != null || parsed?.ApplicationId != null))
-  } catch (e) { errMsg = e.message || String(e) }
+  } catch (e) { errMsg = (e as Error).message || String(e) }
 
   const endDate = new Date()
   await sqlPool.request().input('QueueLogId', sql.Int, queueLogId).input('IsSuccess', sql.Bit, success ? 1 : 0).execute('dbo.UpdateQueueLog')
@@ -42,7 +47,7 @@ async function processOneRow(row, sqlPool, postPath) {
     await sqlPool.request().input('QueueId', sql.Int, queueId).execute('dbo.UpdateQueueOnSuccess')
     if (row.SourceTypeId === 1 || row.SourceTypeId === 2 || row.SourceTypeId === 3) {
       try {
-        const parsed = JSON.parse(responseText || '{}')
+        const parsed = JSON.parse(responseText || '{}') as Record<string, unknown>
         const asnNo = parsed?.OrderAsnNumber ?? parsed?.orderAsnNumber ?? parsed?.AsnNo ?? parsed?.asnNo ?? parsed?.DocumentNo ?? parsed?.documentNo
         if (asnNo != null && String(asnNo).trim() !== '') {
           await sqlPool.request().input('InboundAsnId', sql.Int, row.SourceId).input('AsnNo', sql.NVarChar(50), String(asnNo).trim()).query('UPDATE dbo.InboundAsn SET AsnNo = @AsnNo, CompletedDate = GETDATE() WHERE InboundAsnId = @InboundAsnId')
@@ -51,16 +56,16 @@ async function processOneRow(row, sqlPool, postPath) {
       } catch (_) {}
     }
     if (row.SourceTypeId === 4 || row.SourceTypeId === 5 || row.SourceTypeId === 6) {
-      const successorScript = (row.SuccessorScript || '').trim()
+      const successorScript = (row.SuccessorScript || '').toString().trim()
       if (successorScript && /^EXEC\s+dbo\.MissionAccomplished\s+\d+\s*$/i.test(successorScript)) {
-        try { await sqlPool.request().query(successorScript) } catch (succErr) { console.error('[queue] SuccessorScript hatası (QueueId=%s):', queueId, succErr?.message || succErr) }
+        try { await sqlPool.request().query(successorScript) } catch (succErr) { logger.error({ queueId, err: (succErr as Error)?.message || succErr }, 'queue SuccessorScript hatası') }
       } else {
-        try { await updateDraftFromQueueSuccess(sqlPool, row, responseText) } catch (draftErr) { console.error('[queue] Draft güncelleme hatası (QueueId=%s):', queueId, draftErr?.message || draftErr) }
+        try { await updateDraftFromQueueSuccess(sqlPool, row as { SourceTypeId: number; SourceId: number }, responseText) } catch (draftErr) { logger.error({ queueId, err: (draftErr as Error)?.message || draftErr }, 'queue Draft güncelleme hatası') }
       }
       if (row.SourceTypeId === 5 || row.SourceTypeId === 4) {
-        try { await sqlPool.request().execute('dbo.CreateQueueForAllocation') } catch (allocErr) { console.error('[queue] CreateQueueForAllocation hatası:', allocErr?.message || allocErr) }
+        try { await sqlPool.request().execute('dbo.CreateQueueForAllocation') } catch (allocErr) { logger.error({ err: (allocErr as Error)?.message || allocErr }, 'queue CreateQueueForAllocation hatası') }
       }
-      try { await sqlPool.request().input('DraftOrderHeaderId', sql.Int, row.SourceId).execute('dbo.SetRequestCompletedIfAllDraftsComplete') } catch (reqErr) { console.error('[queue] SetRequestCompletedIfAllDraftsComplete hatası (QueueId=%s):', queueId, reqErr?.message || reqErr) }
+      try { await sqlPool.request().input('DraftOrderHeaderId', sql.Int, row.SourceId).execute('dbo.SetRequestCompletedIfAllDraftsComplete') } catch (reqErr) { logger.error({ queueId, err: (reqErr as Error)?.message || reqErr }, 'queue SetRequestCompletedIfAllDraftsComplete hatası') }
     }
     return { queueId, success: true }
   } else {
@@ -72,8 +77,8 @@ async function processOneRow(row, sqlPool, postPath) {
   }
 }
 
-function register(router) {
-  router.post('/api/queue/process', wrapHandler(async (req, res) => {
+export function register(router: Router): void {
+  router.post('/api/queue/process', wrapHandler(requireAuthOrInternalKey(async (_req, res) => {
     const pool = getPool()
     const sqlPool = await pool.getPool()
     await sqlPool.request().execute('dbo.LogMaintenance')
@@ -82,8 +87,8 @@ function register(router) {
     let chunkSize = 0
     try {
       const paramResult = await sqlPool.request().query("SELECT ParameterKey, ParameterValue FROM dbo.SystemParameter WHERE ParameterKey IN (N'QueueBatchSize', N'QueuePostChunkSize')")
-      const paramMap = {}
-      for (const r of paramResult.recordset || []) paramMap[r.ParameterKey] = r.ParameterValue
+      const paramMap: Record<string, string> = {}
+      for (const r of (paramResult.recordset as Record<string, unknown>[]) || []) paramMap[r.ParameterKey as string] = r.ParameterValue as string
       const pvBatch = paramMap['QueueBatchSize']
       if (pvBatch != null) { const n = parseInt(String(pvBatch), 10); if (Number.isFinite(n) && n > 0) batchSize = n }
       const pvChunk = paramMap['QueuePostChunkSize']
@@ -93,15 +98,16 @@ function register(router) {
     const listReq = sqlPool.request()
     listReq.input('BatchSize', sql.Int, batchSize)
     const listResult = await listReq.execute('dbo.GetQueueList')
-    const rows = listResult.recordset || []
+    const rows = (listResult.recordset as Record<string, unknown>[]) || []
     if (rows.length === 0) return sendOk(res, { processed: 0, succeeded: 0, failed: 0, results: [] })
 
-    let token
-    try { token = await getErpToken() } catch (err) { return sendError(res, 502, 'ERP token alınamadı: ' + (err.message || String(err))) }
+    let token: string
+    try { token = await getErpToken() } catch (err) { return sendError(res, 502, 'ERP token alınamadı: ' + ((err as Error).message || String(err))) }
     const postPath = `/IntegratorService/Post/${encodeURIComponent(token)}`
 
-    const results = []
-    let succeeded = 0, failed = 0
+    const results: { queueId: number; success: boolean; error?: string }[] = []
+    let succeeded = 0
+    let failed = 0
 
     if (chunkSize > 0) {
       for (let i = 0; i < rows.length; i += chunkSize) {
@@ -121,7 +127,5 @@ function register(router) {
     }
 
     sendOk(res, { processed: rows.length, succeeded, failed, results })
-  }))
+  })))
 }
-
-module.exports = { register }
